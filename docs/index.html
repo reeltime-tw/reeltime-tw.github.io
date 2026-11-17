@@ -5,8 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23b3122e'/%3E%3Cpath d='M9 9h14v14H9z' fill='none' stroke='%23fff' stroke-width='2.4'/%3E%3Cpath d='M13 9v14M19 9v14' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
-<title>全台電影場次</title>
+<title>開場｜全台電影場次</title>
+<meta name="description" content="全台影城場次一次看，選好場次直接到官網訂票。">
+<meta name="application-name" content="開場">
+<meta name="apple-mobile-web-app-title" content="開場">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -30,8 +39,9 @@ a{color:inherit}
 /* ---- 頂部 ---- */
 header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
 .bar{height:var(--hd);display:flex;align-items:center;gap:8px}
-.brand{font-weight:800;font-size:17px;letter-spacing:.5px;white-space:nowrap;margin-right:auto}
-.brand small{display:block;font-weight:400;font-size:11px;color:var(--ink3);letter-spacing:0;line-height:1.2}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:2px;white-space:nowrap;margin-right:auto;line-height:1.15}
+.brand img{border-radius:8px;flex:0 0 auto}
+.brand small{display:block;font-weight:400;font-size:11px;color:var(--ink3);letter-spacing:0;line-height:1.3}
 .loc{display:flex;align-items:center;gap:4px;height:36px;padding:0 12px;border-radius:18px;background:var(--bg);border:1px solid var(--line);font-size:14px;font-weight:600;white-space:nowrap}
 .loc svg{width:16px;height:16px;color:var(--red)}
 .ibtn{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--ink2)}
@@ -386,7 +396,7 @@ const metaLine=m=>[m.genre,m.runtime?m.runtime+' 分鐘':''].filter(Boolean).map
 function topBar(){
   if(S.route==='movie'||S.route==='cinema')return `<button class="back" data-act="back" aria-label="返回">${ICON.back}返回</button><span style="margin-right:auto"></span><button class="loc" data-act="loc">${ICON.pin}${esc(S.city)}${ICON.down}</button>`;
   const upd=DB&&!DB.demo&&DB.updatedAt?'場次更新於 '+fmtTime(DB.updatedAt):'';
-  return `<div class="brand">全台電影場次<small>${esc(upd)}</small></div><button class="loc" data-act="loc" aria-label="地區：${esc(S.city)}，點擊切換">${ICON.pin}${esc(S.city)}${ICON.down}</button><button class="ibtn" data-act="search" aria-label="搜尋電影或影城">${ICON.search}</button>`;
+  return `<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div>開場<small>${esc(upd||'全台電影場次')}</small></div></div><button class="loc" data-act="loc" aria-label="地區：${esc(S.city)}，點擊切換">${ICON.pin}${esc(S.city)}${ICON.down}</button><button class="ibtn" data-act="search" aria-label="搜尋電影或影城">${ICON.search}</button>`;
 }
 function demoBanner(){
   if(!DB.demo)return '';
@@ -459,7 +469,7 @@ function renderCinemaList(){
 function pageMovie(id){
   const m=DB.byM[id];
   if(!m){view.innerHTML='<div class="empty"><b>找不到這部電影</b>可能已經下檔。<br><a class="btn" href="#/">回到現正上映</a></div>';sub.innerHTML='';return}
-  document.title=m.title+'｜全台電影場次';
+  document.title=m.title+'｜開場';
   const cs=areaCinemas();
   const all=BYM[m.id]||[];
   const areaIds=new Set(cs.map(c=>c.id));
@@ -515,7 +525,7 @@ function pageMovie(id){
 function pageCinema(id){
   const c=DB.byC[id];
   if(!c){view.innerHTML='<div class="empty"><b>找不到這間影城</b><br><a class="btn" href="#/cinemas">回到影城列表</a></div>';sub.innerHTML='';return}
-  document.title=c.name+'｜全台電影場次';
+  document.title=c.name+'｜開場';
   sub.innerHTML='';
   const ms=DB.movies.filter(m=>m.status!=='soon'||m.presale);
   const count=d=>ms.reduce((a,m)=>a+showsOf(c.id,m.id,d).length,0);
@@ -622,7 +632,7 @@ function parseRoute(){
 function render(keepScroll){
   if(!DB)return;
   const y=window.scrollY;
-  document.title='全台電影場次';
+  document.title='開場｜全台電影場次';
   bar.innerHTML=topBar();
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.nav===S.route)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(S.route==='now')pageNow();else if(S.route==='soon')pageSoon();else if(S.route==='cinemas')pageCinemas();else if(S.route==='movie')pageMovie(S.id);else pageCinema(S.id);
@@ -681,7 +691,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetOpen)closeShee
 function fmtTime(iso){const d=new Date(iso);if(isNaN(d))return '';return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
 async function boot(force){
   parseRoute();
-  if(!DB){bar.innerHTML=`<div class="brand">全台電影場次</div>`;view.innerHTML=`<div class="grid">${Array.from({length:6},()=>'<div><div class="skel" style="aspect-ratio:2/3"></div><div class="skel" style="height:14px;margin-top:8px;width:80%"></div></div>').join('')}</div>`}
+  if(!DB){bar.innerHTML=`<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div>開場<small>全台電影場次</small></div></div>`;view.innerHTML=`<div class="grid">${Array.from({length:6},()=>'<div><div class="skel" style="aspect-ratio:2/3"></div><div class="skel" style="height:14px;margin-top:8px;width:80%"></div></div>').join('')}</div>`}
   try{
     const r=await fetch('data.json'+(force?'?t='+Date.now():''),{cache:'no-cache'});
     if(!r.ok)throw new Error('HTTP '+r.status);

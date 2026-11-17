@@ -37,6 +37,7 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | `scrape/chains/*.mjs` | 每家影城一個檔，匯出 `chain`、`site`、`scrape()` |
 | `docs/index.html` | App（單檔 HTML/CSS/JS，讀 `data.json`；載入失敗時顯示示範資料）。2026-11-18 淺色系改版，見「介面設計」 |
 | `scrape/posters.mjs` | 下載海報、用 sharp 縮成寬 300px WebP 存到 `docs/posters/{sha1(url)前16碼}.webp`；已有的不重抓、沒用到的刪除；電影加上 `posterLocal`。App 依序用 posterLocal → poster（官網）→ 產生的替代圖 |
+| `docs/icon.svg`、`docs/icon-*.png`、`docs/apple-touch-icon.png`、`docs/manifest.webmanifest` | App 名稱「開場」與圖示（紅底白票根＋播放符號）；PNG 由 `node tools/make-icons.cjs` 從 icon.svg 產生。manifest 讓手機「加入主畫面」後全螢幕開啟 |
 | `docs/data.json`、`docs/raw/*.json`、`docs/posters/` | 由使用者電腦產生並提交。`raw/` 是各影城上次成功的原始資料（某家失敗時沿用） |
 | `windows/setup.ps1` | 一次性設定：裝 Git/Node、clone 到 `%USERPROFILE%\tw-cinema`、建排程（WakeToRun）、開喚醒計時器、先跑一次 |
 | `windows/update.ps1` | 每日執行；用 SetThreadExecutionState 防止執行中睡著；紀錄在 `windows/update.log` |
