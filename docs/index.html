@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>全台電影場次</title>
+<style>
+:root{
+  --bg:#0f0e13; --bg2:#17151d; --card:#1d1a25; --line:#2c2836; --tx:#f3f0f7; --tx2:#a9a3b5; --tx3:#7a748a;
+  --ac:#ffb454; --ac2:#ff6b4a; --ok:#5fd39a; --warn:#ffcf5c; --bad:#ff6b6b;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.5}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+header{position:sticky;top:0;z-index:20;background:rgba(15,14,19,.92);backdrop-filter:blur(10px);padding:calc(10px + env(safe-area-inset-top)) 0 8px;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:20px;margin:0;letter-spacing:.5px}
+h1 b{color:var(--ac)}
+.iconbtn{min-width:44px;height:44px;border-radius:12px;color:var(--tx2);font-size:13px}
+.iconbtn:hover{background:var(--bg2)}
+.demo{background:#2a2112;color:var(--warn);font-size:12px;padding:6px 10px;border-radius:8px;margin:8px 0 0}
+.demo.info{background:transparent;color:var(--tx3);padding:2px 0;margin:4px 0 0}
+.seg{display:flex;background:var(--bg2);border-radius:12px;padding:3px;margin-top:10px}
+.seg button{flex:1;height:38px;border-radius:10px;color:var(--tx2);font-weight:600;font-size:14px}
+.seg button[aria-selected=true]{background:var(--card);color:var(--tx);box-shadow:0 0 0 1px var(--line)}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;margin:0 -16px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;width:54px;height:62px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--tx2);font-size:12px}
+.day b{font-size:18px;color:var(--tx);line-height:1.2}
+.day[aria-pressed=true]{background:var(--ac);border-color:var(--ac);color:#2b1a00}
+.day[aria-pressed=true] b{color:#2b1a00}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 4px;margin:0 -16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--tx2);font-size:13px}
+.chip[aria-pressed=true]{background:#2c2214;border-color:var(--ac);color:var(--ac)}
+.label{font-size:12px;color:var(--tx3);margin:10px 0 4px}
+main{padding-top:14px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
+.mv{text-align:left;display:block;width:100%}
+.poster{position:relative;aspect-ratio:2/3;border-radius:var(--r);overflow:hidden;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);border-radius:8px;padding:2px 8px;font-size:12px;color:var(--ac)}
+.rate{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.65);border-radius:8px;padding:2px 7px;font-size:11px}
+.mv h3{margin:8px 0 0;font-size:15px;line-height:1.3}
+.mv p{margin:2px 0 0;font-size:12px;color:var(--tx2)}
+.empty{text-align:center;color:var(--tx2);padding:40px 12px;background:var(--bg2);border-radius:var(--r);border:1px dashed var(--line)}
+.empty b{display:block;color:var(--tx);margin-bottom:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h3{margin:0;font-size:16px}
+.sub{font-size:12px;color:var(--tx2)}
+.pub{margin-top:8px;padding:8px 10px;border-radius:10px;background:#15131b;border:1px solid var(--line);font-size:12px;color:var(--tx2);display:grid;gap:2px}
+.pub b{color:var(--tx);font-weight:600}
+.times{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.t{min-width:72px;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);padding:4px 10px;text-align:center}
+.t b{display:block;font-size:16px;line-height:1.2}
+.t span{font-size:11px;color:var(--tx2)}
+.t:hover{border-color:var(--ac)}
+.t.hot span{color:var(--warn)} .t.low span{color:var(--ac2)} .t.out{opacity:.45;text-decoration:line-through}
+.fm{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:6px;color:var(--tx2)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(15,14,19,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar .in{max-width:720px;margin:0 auto;display:flex}
+.tabbar button{flex:1;height:60px;color:var(--tx3);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tabbar button[aria-selected=true]{color:var(--ac)}
+.tabbar svg{width:22px;height:22px}
+.ov{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:720px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:22px 22px 0 0;border:1px solid var(--line);border-bottom:0;padding:16px 16px calc(24px + env(safe-area-inset-bottom));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.sheet{animation:none}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.mhead{display:flex;gap:14px}
+.mhead .poster{width:112px;flex:0 0 auto}
+.mhead h2{margin:0 0 4px;font-size:20px;line-height:1.25}
+.meta{font-size:12px;color:var(--tx2);display:grid;gap:2px}
+.syn{font-size:13px;color:var(--tx2);margin:12px 0}
+.cta{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#2b1100;font-weight:700;text-decoration:none;margin-top:14px}
+.ghost{display:flex;align-items:center;justify-content:center;height:44px;border-radius:12px;border:1px solid var(--line);color:var(--tx2);margin-top:8px;width:100%}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:6px;margin:12px 0;font-size:14px}
+.sum div{display:flex;justify-content:space-between;gap:12px}
+.sum span:first-child{color:var(--tx2)}
+.note{font-size:12px;color:var(--tx3);margin-top:10px}
+textarea,input[type=text]{width:100%;background:var(--bg2);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px;font:12px/1.4 ui-monospace,monospace}
+textarea{min-height:110px}
+.row{display:flex;gap:8px;margin-top:8px}
+.row>*{flex:1}
+.pbtn{height:44px;border-radius:12px;background:var(--ac);color:#2b1a00;font-weight:700}
+.sbtn{height:44px;border-radius:12px;border:1px solid var(--line);color:var(--tx2)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#2a2733;border:1px solid var(--line);padding:10px 14px;border-radius:12px;font-size:13px;z-index:60;max-width:90vw}
+pre{white-space:pre-wrap;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;color:var(--tx2)}
+h4{margin:16px 0 6px;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>全台<b>電影</b>場次</h1>
+      <button class="iconbtn" id="btnData" aria-label="資料來源設定">資料來源</button>
+    </div>
+    <div class="demo" id="demoBar"></div>
+    <div class="seg" role="tablist" id="seg">
+      <button role="tab" data-sec="now" aria-selected="true">上映中</button>
+      <button role="tab" data-sec="soon" aria-selected="false">即將上映</button>
+    </div>
+  </div>
+  <div class="wrap" id="filters"></div>
+</header>
+<main class="wrap" id="view"></main>
+
+<nav class="tabbar" aria-label="主選單"><div class="in">
+  <button data-tab="movies" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>電影</button>
+  <button data-tab="cinemas" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>影城</button>
+</div></nav>
+<div id="layer"></div>
+
+<script>
+/* ================= 資料層 =================
+ * 標準資料格式（載入真實資料時請依此輸出 JSON）：
+ * {
+ *  "updatedAt":"2026-11-18T09:30:00+08:00",
+ *  "movies":[{"id","title","en","rating","runtime","genre","release":"YYYY-MM-DD","status":"now|soon","synopsis","poster":"URL 或 data URI"}],
+ *  "cinemas":[{"id","chain","name","region":"北部|中部|南部|東部|離島","city","addr","site":"官網","ticketUrl":"可用 {movie}{date}{time} 樣板",
+ *     "publish":{"publishedUntil":"YYYY-MM-DD","nextAt":"YYYY-MM-DDTHH:mm","rangeFrom":"YYYY-MM-DD","rangeTo":"YYYY-MM-DD"}}],
+ *  "showtimes":[{"cinema","movie","date":"YYYY-MM-DD","time":"HH:mm","format","hall","seats":"open|hot|low|out","url":"可選，直達該場次"}]
+ * }
+ */
+const REGIONS=['全部','北部','中部','南部','東部','離島'];
+const WD=['日','一','二','三','四','五','六'];
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const parseYmd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const md=s=>{if(!s)return '';const d=parseYmd(s.slice(0,10));return (d.getMonth()+1)+'/'+d.getDate()+'('+WD[d.getDay()]+')'};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TODAY=new Date(); TODAY.setHours(0,0,0,0);
+const todayS=ymd(TODAY);
+function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);h^=h>>>16;return(h>>>0)/4294967296}}
+
+/* ---- 示範資料（片名為虛構，場次為模擬，僅供預覽介面）---- */
+function demoData(){
+  const M=(id,title,en,rating,runtime,genre,off,status,reach,synopsis,hue)=>({id,title,en,rating,runtime,genre,release:ymd(addDays(TODAY,off)),status,reach,synopsis,hue});
+  const movies=[
+   M('m1','星海歸途','Return Across Stars','護',148,'科幻',-12,'now',92,'太空站失聯十年後，唯一的倖存者帶著一段訊號回到地球。',255),
+   M('m2','雨巷','Rain Alley','輔12',112,'劇情',-20,'now',70,'一條老城雨巷，兩個陌生人因同一把傘展開十年的牽掛。',200),
+   M('m3','最後一班夜車','Last Night Train','輔15',104,'驚悚',-6,'now',78,'末班車上乘客一個個消失，只剩你還記得他們。',350),
+   M('m4','熊貓郵局','Panda Post Office','普',96,'動畫',-27,'now',85,'山城郵局的熊貓郵差，要把一封遲到三十年的信送到。',140),
+   M('m5','龍脊山','Dragon Ridge','輔12',131,'動作',-3,'now',88,'護送古物穿越山脈的最後三天，追兵逼近。',20),
+   M('m6','光年之外','Beyond the Light-year','護',126,'愛情',-9,'now',60,'相隔四光年的兩人，用書信維繫彼此。',290),
+   M('m7','紙飛機','Paper Planes','普',99,'家庭',-15,'now',55,'一個孩子折了一千架紙飛機，想飛向爸爸的工作地。',45),
+   M('m8','深海回聲','Deep Echo','輔15',118,'懸疑',-1,'now',65,'潛水員在海底聽見了不該存在的聲音。',180),
+   M('s1','春日迷宮','Spring Maze','普',107,'奇幻',+5,'soon',0,'一座每天都在改變格局的校園，與找不到出口的少女。',320),
+   M('s2','夜航','Night Flight','輔12',122,'劇情',+9,'soon',0,'跨洋夜航班機上，三個人的人生交會。',230),
+   M('s3','鯨落','Whale Fall','護',135,'冒險',+14,'soon',0,'巨鯨沉入深海後，生態系的新生。',195),
+   M('s4','老街咖啡館','Old Street Café','普',101,'喜劇',+21,'soon',0,'即將歇業的咖啡館，最後一週迎來所有老客人。',30),
+   M('s5','赤焰','Crimson','輔15',140,'動作',+28,'soon',0,'城市停電的夜晚，一場無聲的追逐。',5)
+  ];
+  const C=(id,chain,name,region,city,addr,site,pdow,ph)=>({id,chain,name,region,city,addr,site,ticketUrl:site,pdow,ph,
+     fm:chain==='威秀'?['數位','IMAX','4DX']:chain==='國賓'?['數位','D-BOX']:['數位','Dolby']});
+  const cinemas=[
+   C('c1','威秀','台北信義威秀','北部','台北市信義區','松壽路20號','https://www.vscinemas.com.tw/',3,12),
+   C('c2','國賓','國賓影城 西門','北部','台北市萬華區','成都路88號','https://www.ambassador.com.tw/',2,10),
+   C('c3','秀泰','秀泰影城 台北站前','北部','台北市中正區','市民大道一段209號','https://www.showtimes.com.tw/',3,14),
+   C('c4','美麗華','美麗華大直影城','北部','台北市中山區','敬業三路20號','https://www.miramar.com.tw/',4,12),
+   C('c5','威秀','台中大遠百威秀','中部','台中市西屯區','台灣大道三段251號','https://www.vscinemas.com.tw/',3,12),
+   C('c6','新光','新光影城 台中中港','中部','台中市西屯區','台灣大道三段301號','https://www.skcinemas.com/',3,9),
+   C('c7','威秀','台南FOCUS威秀','南部','台南市中西區','忠義路二段2號','https://www.vscinemas.com.tw/',3,12),
+   C('c8','國賓','國賓影城 高雄','南部','高雄市前鎮區','三多三路213號','https://www.ambassador.com.tw/',2,10),
+   C('c9','秀泰','秀泰影城 花蓮','東部','花蓮縣花蓮市','中山路615號','https://www.showtimes.com.tw/',2,12),
+   C('c10','國賓','國賓影城 金門','離島','金門縣金城鎮','民生路10號','https://www.ambassador.com.tw/',1,10)
+  ];
+  cinemas.forEach(c=>{
+    const now=new Date();
+    let last=new Date(TODAY); last.setHours(c.ph,0,0,0);
+    while(last.getDay()!==c.pdow||last>now) last=addDays(last,-1), last.setHours(c.ph,0,0,0);
+    let fri=new Date(last); fri.setHours(0,0,0,0); do{fri=addDays(fri,1)}while(fri.getDay()!==5);
+    const until=addDays(fri,6), next=addDays(last,7);
+    c.publish={publishedUntil:ymd(until),nextAt:ymd(next)+'T'+pad(c.ph)+':00',rangeFrom:ymd(addDays(until,1)),rangeTo:ymd(addDays(until,7))};
+  });
+  const base=[[10,20],[12,50],[15,30],[18,10],[20,40],[22,50]];
+  const showtimes=[];
+  for(const c of cinemas)for(const m of movies){
+    if(m.status!=='now')continue;
+    if(rng(c.id+m.id)()*100>=m.reach)continue;
+    for(let i=0;i<=14;i++){
+      const ds=ymd(addDays(TODAY,i)); if(ds>c.publish.publishedUntil)break;
+      const r=rng(c.id+m.id+ds), n=2+Math.floor(r()*3), pick=new Set();
+      while(pick.size<n)pick.add(Math.floor(r()*6));
+      [...pick].sort().forEach(k=>{
+        const [h,mi]=base[k]; const off=Math.floor(r()*3)*5;
+        const s=r(); showtimes.push({cinema:c.id,movie:m.id,date:ds,time:pad(h)+':'+pad(mi+off),
+          format:c.fm[Math.floor(r()*c.fm.length)],hall:(1+Math.floor(r()*9))+'廳',seats:s<.12?'out':s<.3?'low':s<.55?'hot':'open'});
+      });
+    }
+  }
+  return{demo:true,updatedAt:new Date().toISOString(),movies,cinemas,showtimes};
+}
+
+/* ---- 標準化 ---- */
+let DB=null, IDX={};
+function setData(raw){
+  const movies=raw.movies||[], shows=raw.showtimes||[];
+  const RO={'北部':0,'中部':1,'南部':2,'東部':3,'離島':4};
+  const cinemas=(raw.cinemas||[]).slice().sort((a,b)=>(RO[a.region]??9)-(RO[b.region]??9)||String(a.chain).localeCompare(String(b.chain),'zh-Hant')||a.name.localeCompare(b.name,'zh-Hant'));
+  shows.forEach((s,i)=>s._i=i);
+  IDX={};
+  for(const s of shows){const k=s.cinema+'|'+s.movie+'|'+s.date;(IDX[k]=IDX[k]||[]).push(s)}
+  for(const k in IDX)IDX[k].sort((a,b)=>a.time.localeCompare(b.time));
+  DB={demo:!!raw.demo,updatedAt:raw.updatedAt,status:raw.status||[],chains:[...new Set(cinemas.map(c=>c.chain).filter(Boolean))],movies,cinemas,shows,byM:Object.fromEntries(movies.map(m=>[m.id,m])),byC:Object.fromEntries(cinemas.map(c=>[c.id,c]))};
+}
+const showsOf=(c,m,d)=>IDX[c+'|'+m+'|'+d]||[];
+const published=(c,d)=>!c.publish?.publishedUntil||d<=c.publish.publishedUntil;
+
+/* ---- 海報：優先使用 poster；沒有或載入失敗時產生替代圖 ---- */
+function fallbackPoster(m){
+  const h=m.hue??(Math.abs([...m.title].reduce((a,c)=>a+c.charCodeAt(0),0))%360);
+  const t=[...m.title].slice(0,8);
+  const lines=t.length>4?[t.slice(0,Math.ceil(t.length/2)).join(''),t.slice(Math.ceil(t.length/2)).join('')]:[t.join('')];
+  const cols=lines.map((l,i)=>[...l].map((ch,j)=>`<text x="${200-i*46}" y="${112+j*40}" font-size="34" font-weight="800" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(ch)}</text>`).join('')).join('');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h},70%,45%)"/><stop offset="1" stop-color="hsl(${(h+50)%360},60%,14%)"/></linearGradient></defs><rect width="240" height="360" fill="url(#g)"/><circle cx="70" cy="95" r="46" fill="hsla(${h},90%,75%,.22)"/><circle cx="60" cy="300" r="90" fill="hsla(${h},90%,70%,.12)"/>${cols}<text x="18" y="334" font-size="11" fill="#fff" fill-opacity=".75" font-family="sans-serif">${esc((m.en||'').slice(0,26))}</text></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+function posterImg(m,cls=''){
+  const fb=fallbackPoster(m);
+  const src=m.poster||fb;
+  return `<img class="${cls}" referrerpolicy="no-referrer" alt="${esc(m.title)} 海報" loading="lazy" src="${esc(src)}" onerror="this.onerror=null;this.src=this.dataset.fb" data-fb="${fb.replace(/"/g,'&quot;')}">`;
+}
+
+/* ================= 狀態與畫面 ================= */
+const S={tab:'movies',sec:'now',date:todayS,region:'全部',period:'全部',chain:'全部'};
+const $=s=>document.querySelector(s);
+const view=$('#view'), filters=$('#filters'), layer=$('#layer');
+
+function inPeriod(t){
+  if(S.period==='全部')return true; const h=+t.slice(0,2);
+  return S.period==='早場'?h<12:S.period==='下午'?h>=12&&h<18:h>=18;
+}
+function filterHTML(){
+  if(S.tab==='movies'&&S.sec==='soon')return '';
+  let days='';
+  for(let i=0;i<10;i++){const d=addDays(TODAY,i),s=ymd(d);
+    days+=`<button class="day" data-date="${s}" aria-pressed="${s===S.date}" aria-label="${d.getMonth()+1}月${d.getDate()}日 星期${WD[d.getDay()]}">${i===0?'今天':'週'+WD[d.getDay()]}<b>${d.getDate()}</b></button>`}
+  const reg=REGIONS.map(r=>`<button class="chip" data-region="${r}" aria-pressed="${r===S.region}">${r}</button>`).join('');
+  const per=['全部','早場','下午','晚場'].map(r=>`<button class="chip" data-period="${r}" aria-pressed="${r===S.period}">${r==='全部'?'全時段':r+(r==='早場'?' <12:00':r==='下午'?' 12–18':' 18:00後')}</button>`).join('');
+  const ch=S.tab==='cinemas'&&DB.chains.length>1?`<div class="chips" style="padding-top:8px" role="group" aria-label="選擇影城品牌">${['全部',...DB.chains].map(r=>`<button class="chip" data-chain="${esc(r)}" aria-pressed="${r===S.chain}">${r==='全部'?'全部品牌':esc(r)}</button>`).join('')}</div>`:'';
+  return `<div class="strip" role="group" aria-label="選擇日期">${days}</div><div class="chips" role="group" aria-label="選擇地區">${reg}</div>${ch}<div class="chips" style="padding-top:8px;padding-bottom:10px" role="group" aria-label="選擇時段">${per}</div>`;
+}
+function cinemasIn(useChain){return DB.cinemas.filter(c=>(S.region==='全部'||c.region===S.region)&&(!useChain||S.chain==='全部'||c.chain===S.chain))}
+const metaLine=m=>[m.genre,m.runtime?m.runtime+' 分':''].filter(Boolean).map(esc).join('・');
+const hasShows=m=>m.status!=='soon'||m.presale;
+
+function render(){
+  const bar=$('#demoBar');
+  if(DB.demo){bar.style.display='block';bar.className='demo';bar.textContent=(LOAD_ERR?'無法載入場次資料（'+LOAD_ERR+'），':'')+'目前顯示示範資料：片名與場次為模擬內容。';}
+  else{const bad=DB.status.filter(x=>!x.ok).map(x=>x.chain);bar.style.display='block';bar.className='demo info';bar.textContent='場次更新於 '+fmtTime(DB.updatedAt)+(bad.length?'・'+bad.join('、')+' 本次更新失敗，暫用前次資料':'');}
+  $('#seg').style.display=S.tab==='movies'?'flex':'none';
+  document.querySelectorAll('#seg button').forEach(b=>b.setAttribute('aria-selected',b.dataset.sec===S.sec));
+  document.querySelectorAll('.tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===S.tab));
+  filters.innerHTML=filterHTML();
+  view.innerHTML=S.tab==='movies'?(S.sec==='now'?moviesNow():moviesSoon()):cinemaList();
+}
+function moviesNow(){
+  const cs=cinemasIn(); const list=[];
+  for(const m of DB.movies){ if(m.status==='soon')continue;
+    let n=0; for(const c of cs)n+=showsOf(c.id,m.id,S.date).filter(s=>inPeriod(s.time)).length;
+    if(n)list.push([m,n]);}
+  list.sort((a,b)=>b[1]-a[1]);
+  if(!list.length){
+    const unpub=cs.length&&cs.every(c=>!published(c,S.date));
+    return `<div class="empty"><b>${unpub?'這天的場次尚未公布':'這個條件沒有場次'}</b>${unpub?'所選地區的影城還沒公布這天的場次，到「影城」分頁可看各家下次公布時間。':'試試其他日期、地區或時段。'}</div>`}
+  return `<div class="grid">${list.map(([m,n])=>`<button class="mv" data-movie="${m.id}"><div class="poster">${posterImg(m)}<span class="badge">${n} 場</span>${m.rating?`<span class="rate">${esc(m.rating)}</span>`:''}</div><h3>${esc(m.title)}</h3><p>${metaLine(m)}</p></button>`).join('')}</div>`;
+}
+function moviesSoon(){
+  const l=DB.movies.filter(m=>m.status==='soon').sort((a,b)=>String(a.release).localeCompare(String(b.release)));
+  if(!l.length)return `<div class="empty"><b>目前沒有即將上映的片子</b></div>`;
+  return `<div class="grid">${l.map(m=>`<button class="mv" data-movie="${m.id}"><div class="poster">${posterImg(m)}<span class="badge">${m.presale?'預售中':md(m.release)+' 上映'}</span>${m.rating?`<span class="rate">${esc(m.rating)}</span>`:''}</div><h3>${esc(m.title)}</h3><p>${m.presale?md(m.release)+' 上映・':''}${metaLine(m)}</p></button>`).join('')}</div>`;
+}
+function pubInfo(c){
+  const p=c.publish; if(!p)return '';
+  const rows=[];
+  rows.push(p.publishedUntil?`<div>已公布至 <b>${md(p.publishedUntil)}</b>${p.presale?'（另有預售場次）':''}</div>`:`<div>目前沒有公布的場次</div>`);
+  if(p.nextAt){const t=p.nextAt.split('T');rows.push(`<div>下次公布 <b>${md(t[0])}${t[1]?' '+esc(t[1]):''}</b>${p.estimated?' <span style="color:var(--tx3)">（推估）</span>':' <span style="color:var(--ok)">（官方公告）</span>'}</div>`)}
+  if(p.rangeFrom&&p.rangeTo)rows.push(`<div>將公布 <b>${p.rangeFrom===p.rangeTo?md(p.rangeFrom):md(p.rangeFrom)+' – '+md(p.rangeTo)}</b> 的場次</div>`);
+  return `<div class="pub">${rows.join('')}</div>`;
+}
+function timesHTML(c,m,d){
+  const l=showsOf(c.id,m.id,d).filter(s=>inPeriod(s.time));
+  return l.map(s=>{const k=s.seats||'';const txt=k==='out'?'已售完':k==='low'?'座位不多':k==='hot'?'熱賣中':k==='open'?'尚有座位':'';
+    const past=d===todayS&&s.time<(pad(new Date().getHours())+':'+pad(new Date().getMinutes()));
+    const sub=[s.format,txt].filter(Boolean).map(esc).join('・');
+    return `<button class="t ${k} ${past?'out':''}" data-show="${s._i}" ${past?'aria-label="已開演"':''}><b>${s.time}</b>${sub?`<span>${sub}</span>`:''}</button>`}).join('');
+}
+function cinemaBlock(c,movies,d){
+  let body='';
+  for(const m of movies){const t=timesHTML(c,m,d); if(t)body+=`<div style="margin-top:12px"><b style="font-size:14px">${esc(m.title)}</b>${m.rating||m.runtime?`<span class="fm">${[m.rating,m.runtime?m.runtime+'分':''].filter(Boolean).map(esc).join('・')}</span>`:''}<div class="times">${t}</div></div>`}
+  if(!body)body=published(c,d)?`<div class="note">這天此影城沒有符合條件的場次。</div>`:`<div class="note" style="color:var(--warn)">這天的場次尚未公布。</div>`;
+  return `<div class="card"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c.city||c.region)}</div>${pubInfo(c)}${body}</div>`;
+}
+function cinemaList(){
+  const cs=cinemasIn(true); if(!cs.length)return `<div class="empty"><b>此條件沒有影城</b></div>`;
+  const nowM=DB.movies.filter(hasShows);
+  return cs.map(c=>{
+    const n=nowM.reduce((a,m)=>a+showsOf(c.id,m.id,S.date).filter(s=>inPeriod(s.time)).length,0);
+    return `<button class="card" style="display:block;width:100%;text-align:left" data-cinema="${c.id}"><div style="display:flex;justify-content:space-between;gap:8px"><h3>${esc(c.name)}</h3><span class="sub">${n?n+' 場':published(c,S.date)?'無場次':'尚未公布'}</span></div><div class="sub">${esc(c.chain||'')}・${esc(c.region)}${c.city?'・'+esc(c.city):''}</div>${pubInfo(c)}</button>`}).join('');
+}
+
+/* ---- 彈層 ---- */
+function open(html){layer.innerHTML=`<div class="ov" id="ov"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+  $('#ov').addEventListener('click',e=>{if(e.target.id==='ov')close()});document.body.style.overflow='hidden';
+  const b=layer.querySelector('.sheet button,.sheet a');b&&b.focus({preventScroll:true})}
+function close(){layer.innerHTML='';document.body.style.overflow=''}
+const closeBtn=`<button class="ghost" data-close>關閉</button>`;
+
+function movieSheet(id){
+  const m=DB.byM[id]; S.openMovie=id;
+  const head=`<div class="mhead"><div class="poster">${posterImg(m)}</div><div><h2>${esc(m.title)}</h2><div class="meta"><span>${esc(m.en||'')}</span><span>${[m.rating,m.runtime?m.runtime+' 分':'',m.genre].filter(Boolean).map(esc).join('・')}</span>${m.release?`<span>${md(m.release)} 上映</span>`:''}</div></div></div><p class="syn">${esc(m.synopsis||'')}</p>`;
+  if(m.status==='soon'&&!m.presale){
+    const cs=cinemasIn(); const info=cs.slice(0,6).map(c=>`<div class="card" style="margin-bottom:8px"><b>${esc(c.name)}</b>${pubInfo(c)}</div>`).join('');
+    return open(head+`<div class="note" style="margin:0 0 8px">尚未開賣。場次公布後會出現在「上映中」。各影城下次公布時間：</div>${info}${closeBtn}`)}
+  const cs=cinemasIn();
+  let dl=Array.from({length:10},(_,i)=>ymd(addDays(TODAY,i)));
+  if(m.presale){dl=[...new Set(DB.shows.filter(s=>s.movie===m.id).map(s=>s.date))].sort().slice(0,14); if(!dl.includes(S.date))S.date=dl[0];}
+  const days=`<div class="strip" style="padding-left:0;margin:0">${dl.map(s=>{const d=parseYmd(s);return `<button class="day" data-date="${s}" aria-pressed="${s===S.date}">${s===todayS?'今天':m.presale?(d.getMonth()+1)+'月':'週'+WD[d.getDay()]}<b>${d.getDate()}</b></button>`}).join('')}</div>`;
+  const regs=`<div class="chips" style="padding-left:0;margin:0">${REGIONS.map(r=>`<button class="chip" data-region="${r}" aria-pressed="${r===S.region}">${r}</button>`).join('')}</div>`;
+  const blocks=cs.filter(c=>showsOf(c.id,m.id,S.date).length).map(c=>cinemaBlock(c,[m],S.date)).join('');
+  const none=cs.length?`<div class="empty"><b>${cs.some(c=>published(c,S.date))?'這天沒有這部片的場次':'這天的場次尚未公布'}</b>試試其他日期或地區。</div>`:'<div class="empty">此地區沒有影城</div>';
+  open(head+days+regs+`<div style="margin-top:12px">${m.presale?'<div class="note" style="margin:0 0 8px;color:var(--warn)">預售場次</div>':''}${blocks||none}</div>`+closeBtn);
+}
+function cinemaSheet(id){
+  const c=DB.byC[id]; S.openCinema=id;
+  const days=`<div class="strip" style="padding-left:0;margin:0">${Array.from({length:10},(_,i)=>{const d=addDays(TODAY,i),s=ymd(d);return `<button class="day" data-date="${s}" aria-pressed="${s===S.date}">${i===0?'今天':'週'+WD[d.getDay()]}<b>${d.getDate()}</b></button>`}).join('')}</div>`;
+  const ms=DB.movies.filter(hasShows);
+  open(`<h2 style="margin:0 0 4px">${esc(c.name)}</h2><div class="sub">${[c.chain,c.addr||c.city].filter(Boolean).map(esc).join('・')}</div>${days}${cinemaBlock(c,ms,S.date)}<a class="ghost" href="${esc(c.site||'#')}" target="_blank" rel="noopener noreferrer">前往 ${esc(c.chain||c.name)} 官網</a>${closeBtn}`);
+}
+function ticketUrl(c,m,s){
+  const t=s.url||c.ticketUrl||c.site||'#';
+  return t.replace('{movie}',encodeURIComponent(m.id)).replace('{date}',s.date).replace('{time}',encodeURIComponent(s.time));
+}
+function ticketSheet(i){
+  const s=DB.shows[i],c=DB.byC[s.cinema],m=DB.byM[s.movie];
+  open(`<h2 style="margin:0 0 4px">確認場次</h2><div class="sum"><div><span>電影</span><b>${esc(m.title)}</b></div><div><span>影城</span><b>${esc(c.name)}</b></div><div><span>日期</span><b>${md(s.date)}</b></div><div><span>時間</span><b>${esc(s.time)}</b></div><div><span>廳別</span><b>${esc(s.hall||'—')}${s.format?'・'+esc(s.format):''}</b></div></div>
+  <a class="cta" href="${esc(ticketUrl(c,m,s))}" target="_blank" rel="noopener noreferrer">前往官網訂票 ↗</a>
+  <div class="note">將開啟 ${esc(c.chain||c.name)} 官網${DIRECT[c.chain]?'的這個場次。':'，請在官網選擇上述場次購票。'}座位與場次以官網為準。</div>
+  <button class="ghost" data-back>返回場次</button>`);
+}
+function dataSheet(){
+  open(`<h2 style="margin:0 0 4px">資料來源</h2>
+  <div class="sub">${DB.demo?'目前為示範資料（模擬）':'自動抓取各影城官網，每小時更新'}${DB.updatedAt&&!DB.demo?'・更新於 '+fmtTime(DB.updatedAt):''}</div>
+  ${DB.status.length?`<div class="sum">${DB.status.map(x=>`<div><span>${esc(x.chain)}</span><b style="color:${x.ok?'var(--ok)':'var(--bad)'}">${x.ok?(x.shows?x.shows+' 場':'正常'):'更新失敗'}</b></div>`).join('')}</div>`:''}
+  <h4>手動載入場次 JSON</h4>
+  <div class="note" style="margin-top:0">測試用。貼上符合下方格式的資料，或選擇檔案。</div>
+  <textarea id="pasteBox" placeholder='{"movies":[...],"cinemas":[...],"showtimes":[...]}' aria-label="貼上 JSON"></textarea>
+  <div class="row"><button class="pbtn" id="loadPaste">載入</button><label class="sbtn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">選擇檔案<input id="fileIn" type="file" accept="application/json,.json" hidden></label></div>
+  <button class="ghost" id="reload">重新載入最新資料</button>
+  <h4>資料格式</h4>
+  <pre>movies[]: id,title,en,rating,runtime,genre,release,status(now|soon),synopsis,poster
+cinemas[]: id,chain,name,region(北部|中部|南部|東部|離島),city,addr,site,ticketUrl,
+  publish{publishedUntil,nextAt,rangeFrom,rangeTo}
+showtimes[]: cinema,movie,date,time,format,hall,seats(open|hot|low|out),url
+ticketUrl 可用 {movie} {date} {time} 當樣板。</pre>${closeBtn}`);
+}
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2600)}
+function loadJSON(txt){
+  try{const j=JSON.parse(txt);
+    if(!Array.isArray(j.movies)||!Array.isArray(j.cinemas)||!Array.isArray(j.showtimes))throw new Error('缺少 movies / cinemas / showtimes');
+    setData(j);close();render();toast('已載入 '+j.showtimes.length+' 筆場次');
+  }catch(e){toast('載入失敗：'+e.message)}
+}
+
+/* ---- 事件 ---- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,a'); if(!t)return;
+  const inSheet=!!t.closest('.sheet');
+  if(t.dataset.close!==undefined)return close();
+  if(t.dataset.back!==undefined){return S.openCinema&&S.sheet==='c'?cinemaSheet(S.openCinema):movieSheet(S.openMovie)}
+  if(t.dataset.date){S.date=t.dataset.date;render();if(inSheet){S.sheet==='c'?cinemaSheet(S.openCinema):movieSheet(S.openMovie)}return}
+  if(t.dataset.region){S.region=t.dataset.region;render();if(inSheet)movieSheet(S.openMovie);return}
+  if(t.dataset.period){S.period=t.dataset.period;return render()}
+  if(t.dataset.sec){S.sec=t.dataset.sec;return render()}
+  if(t.dataset.tab){S.tab=t.dataset.tab;S.region=S.region;return render()}
+  if(t.dataset.movie){S.sheet='m';return movieSheet(t.dataset.movie)}
+  if(t.dataset.cinema){S.sheet='c';return cinemaSheet(t.dataset.cinema)}
+  if(t.dataset.show){return ticketSheet(+t.dataset.show)}
+  if(t.id==='btnData')return dataSheet();
+  if(t.id==='loadPaste')return loadJSON($('#pasteBox').value);
+  if(t.id==='reload'){close();boot(true)}
+  if(t.dataset.chain){S.chain=t.dataset.chain;return render()}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='fileIn'&&e.target.files[0]){const r=new FileReader();r.onload=()=>loadJSON(r.result);r.readAsText(e.target.files[0])}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&layer.innerHTML)close()});
+
+const DIRECT={'秀泰':1,'威秀':1,'新光':1,'美麗華':1};
+let LOAD_ERR='';
+function fmtTime(iso){const d=new Date(iso);if(isNaN(d))return '';return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+async function boot(force){
+  view.innerHTML='<div class="empty"><b>載入場次中…</b></div>';
+  try{
+    const r=await fetch('data.json'+(force?'?t='+Date.now():''),{cache:'no-cache'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    if(!Array.isArray(j.showtimes)||!j.showtimes.length)throw new Error('資料是空的');
+    LOAD_ERR='';setData(j);
+    if(force)toast('已更新');
+  }catch(e){LOAD_ERR=e.message;setData(demoData())}
+  render();
+}
+boot();
+</script>
+</body>
+</html>

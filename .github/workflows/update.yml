@@ -1,0 +1,55 @@
+name: 更新場次
+
+on:
+  schedule:
+    - cron: '7 * * * *'   # 每小時第 7 分（UTC，GitHub 可能延遲數分鐘）
+  workflow_dispatch:      # 可在 Actions 頁面手動執行
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # 取回上次各影城的資料，某家官網暫時失敗時沿用
+      - uses: actions/cache/restore@v4
+        with:
+          path: docs/raw
+          key: raw-${{ github.run_id }}
+          restore-keys: raw-
+
+      - name: 抓取各影城場次
+        run: npm run scrape
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: docs/raw
+          key: raw-${{ github.run_id }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4

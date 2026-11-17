@@ -1,0 +1,7 @@
+{
+  "name": "tw-cinema-showtimes",
+  "private": true,
+  "type": "module",
+  "scripts": { "scrape": "node scrape/index.mjs" },
+  "dependencies": { "linkedom": "^0.18.5" }
+}
