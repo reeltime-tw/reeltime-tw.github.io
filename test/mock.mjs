@@ -36,6 +36,12 @@ const R={
  'miranewcinemas.com/Booking/Timetable':()=>`<html><body><script>//時刻表相關\n var CinemaList = '${JSON.stringify({Data:{CinemaGroup:[{CinemaCName:'桃園台茂美麗新影城',CinemaId:'1004',MovieInfo:[{MovieCName:'哥吉拉-0.0(護)',MovieEName:'GODZILLA MINUS ZERO(P)',MovieLength:136,PostUrl:'8df1abc',Rate:'P',ShowDateList:[{ShowDateISO:D(0)+'T00:00:00',ShowTimeList:[{MovieHallCht:'IMAX',SessionList:[{ShowTime:'22:30',AvailableSeats:'5',Status:1}]}]}]}]}]}})}';\n</script></body></html>`,
  'skcinemas.com/':()=>`<div class="carousel"><img src="/banner.jpg"><div data-action-url="/Films/FP?filmId=HO1&cinemaId=1001">輪播</div></div><div><img src="/img/p.jpg"><div><h5>哥吉拉-0.0</h5> 上映日期：${D(-12).replace(/-/g,'/')}<div class="black-text" data-action-url="/Films/FP?filmId=HO1&cinemaId=1001&isNowShowing=True">線上訂票</div></div></div>`,
  'skcinemas.com/Films/FP?filmId=HO1&cinemaId=':(u)=>u.includes('cinemaId=1001')?`<h2>哥吉拉-0.0</h2><p>保護級 135 分鐘</p><div class="sessions-view"><div class="days-info"><h5>今日場次</h5><div class="film-type"><p>數位版</p></div><div class="d-flex"><div class="session-info" data-action-url="/Booking/Booking?cinemaId=1001&filmId=HO1&sessionId=5"><p class="show-time">23:00</p><p class="end-time">01:15</p><p>2廳</p><p>剩 12 座位</p></div></div></div></div>`:'<h2>哥吉拉-0.0</h2><div class="sessions-view"></div>',
+ // 開眼戲院頁：誠品有兩部片（今天＋明天），其他戲院沒有場次
+ 'atmovies.com.tw/showtime/':(u)=>{
+  const d1=D(1).replace(/-/g,''), [y,m,d]=(u.includes(d1)?D(1):D(0)).split('-'), ok=u.includes('t02a08');
+  const film=(id,t,cer,rt,times)=>`<ul id="theaterShowtimeTable"><li class="filmTitle"><a href="/movie/${id}/">${t}</a></li><li><ul><li><a href="#"><img src="/photo101/${id}/pl_${id}.jpg"></a></li><li><img src="/images/cer_${cer}.gif"> 片長：${rt}分</li></ul><ul>${times.map(x=>'<li>'+x+'</li>').join('')}<li class="theaterElse"><a href="#">其他戲院(3)</a></li></ul></li></ul>`;
+  return `<div><h2>${ok?'誠品電影院':'光點台北電影院'}</h2><ul><li>地址: 台北市信義區菸廠路88號B1 <li>網站: <a href="https://www.eslitecinema.com/">x</a></ul></div><div>選擇日期：<a href="/showtime/t02a08/a02/">今天</a><a href="/showtime/t02a08/a02/${d1}/">明天</a></div><h3>${y}/${m}/${d} (三)</h3><div id="theaterShowtimeBlock">${ok?film('fgjp34384661','哥吉拉-0.0(數位)','P',125,['13：30','20：10'])+film('fart00000001','完美的日子','G',124,['16：00']):''}</div>`;
+ },
 };
 globalThis.fetch=async(url)=>{
   const u=String(url).replace(/^https?:\/\/(www\.)?/,'');

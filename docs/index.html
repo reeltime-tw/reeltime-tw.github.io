@@ -194,6 +194,14 @@ main{padding:14px 0 24px;min-height:60vh}
 .sheet{width:100%;max-width:760px;max-height:90vh;overflow:auto;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 16px calc(20px + env(safe-area-inset-bottom));animation:up .2s ease-out}
 @keyframes up{from{transform:translateY(30px);opacity:0}}
 @media(prefers-reduced-motion:reduce){.sheet{animation:none}}
+/* 搜尋：從上方展開的全螢幕畫面，輸入框固定在頂端，手機鍵盤不會擋住 */
+.ov.top{align-items:flex-start;background:var(--bg)}
+.sheet.full{height:100%;max-height:none;border-radius:0;padding:calc(8px + env(safe-area-inset-top)) 16px 24px;background:var(--bg);animation:down .18s ease-out}
+@keyframes down{from{transform:translateY(-12px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.sheet.full{animation:none}}
+.qhead{position:sticky;top:calc(-8px - env(safe-area-inset-top));z-index:2;display:flex;align-items:center;gap:8px;padding:8px 0 10px;background:var(--bg)}
+.qhead .search{flex:1}
+.qhead .cancel{height:44px;padding:0 4px 0 8px;font-size:15px;color:var(--red);white-space:nowrap}
 .grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
 .sheet h2{margin:4px 0 12px;font-size:18px}
 .sheet h4{margin:18px 0 8px;font-size:14px;color:var(--ink2);font-weight:600}
@@ -268,11 +276,11 @@ const ICON={
 };
 
 /* ---- 縣市（舊資料沒有縣市時，從店名推斷）---- */
+const COUNTY=/^(苗栗|彰化|南投|雲林|屏東|宜蘭|花蓮|台東|澎湖|金門|連江)$/; // 「花蓮市」等縣轄市一律歸到縣
 function cityOf(c){
-  if(c.city&&/[市縣]$/.test(c.city))return c.city;
   const t=(c.city||'')+' '+c.name+' '+(c.addr||'');
   const m=t.replace(/臺/g,'台').match(/(台北|新北|基隆|桃園|新竹|苗栗|台中|彰化|南投|雲林|嘉義|台南|高雄|屏東|宜蘭|花蓮|台東|澎湖|金門|連江)(市|縣)?/);
-  if(m)return m[1]+(m[2]||(/^(苗栗|彰化|南投|雲林|屏東|宜蘭|花蓮|台東|澎湖|金門|連江)$/.test(m[1])?'縣':'市'));
+  if(m)return m[1]+(COUNTY.test(m[1])?'縣':(m[2]||'市'));
   const D={'新北市':/板橋|新店|中和|永和|土城|林口|三重|新莊|汐止|淡水/,'桃園市':/中壢|青埔|蘆竹/,'新竹縣':/竹北/,'苗栗縣':/頭份|竹南/,'台中市':/大里|豐原/,'高雄市':/岡山|鳳山|左營/,'宜蘭縣':/羅東/};
   for(const k in D)if(D[k].test(t))return k;
   return c.region||'其他';
@@ -305,6 +313,8 @@ function demoData(){
 let DB=null, IDX={}, BYM={}, LOAD_ERR='';
 function setData(raw){
   const movies=raw.movies||[], shows=raw.showtimes||[];
+  // 分級統一成「普／護／輔12／輔15／限」（部分來源寫成「輔12級」）
+  movies.forEach(m=>{if(m.rating)m.rating=String(m.rating).replace(/級$/,'').replace('普遍','普').replace('保護','護').replace('輔導','輔').replace('限制','限')});
   const cinemas=(raw.cinemas||[]).map(c=>({...c,_city:cityOf(c)}));
   const ci=c=>{const i=CITY_ORDER.indexOf(c._city);return i<0?99:i};
   cinemas.sort((a,b)=>ci(a)-ci(b)||String(a.chain).localeCompare(String(b.chain),'zh-Hant')||a.name.localeCompare(b.name,'zh-Hant'));
@@ -532,7 +542,7 @@ function pageCinema(id){
   const dates=nextDates(14);
   const map='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c.addr&&c.addr.length>6?c.addr:c.name);
   let html=`<div class="cin-h"><div class="main"><h1 style="margin:0;font-size:21px;line-height:1.3">${esc(c.name)}</h1><div class="sub">${esc(c.chain||'')}・${esc(c.addr||c._city)}</div></div><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button></div>
-  <div class="links"><a class="btn" href="${esc(map)}" target="_blank" rel="noopener noreferrer">地圖</a><a class="btn" href="${esc(c.site||'#')}" target="_blank" rel="noopener noreferrer">${esc(c.chain||'')}官網</a></div>
+  <div class="links"><a class="btn" href="${esc(map)}" target="_blank" rel="noopener noreferrer">地圖</a><a class="btn" href="${esc(c.site||'#')}" target="_blank" rel="noopener noreferrer">${c.chain==='其他影城'?(/atmovies/.test(c.site||'')?'開眼時刻表':'影城官網'):esc(c.chain||'')+'官網'}</a></div>
   <div style="margin-top:12px">${pubBox(c)}</div>`;
   html+=`<div class="sec-h" style="margin-bottom:0"><h2>場次</h2></div>`+dateStrip(dates,count);
   html+=`<div class="fbar">${['晚','早'].map(p=>`<button class="chip" data-period="${p}" aria-pressed="${S.period===p}">${PERIODS[p]}</button>`).join('')}${KINDS.filter(k=>ms.some(m=>showsOf(c.id,m.id,S.date).some(s=>s._k.includes(k)))).map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('')}</div>`;
@@ -552,9 +562,9 @@ function foot(){return `<div class="foot">場次整理自各影城官網，每�
 
 /* ================= 面板 ================= */
 let sheetOpen=false, ignorePop=0;
-function openSheet(html,label){
+function openSheet(html,label,full){
   if(!sheetOpen){history.pushState({sheet:1},'');sheetOpen=true}
-  layer.innerHTML=`<div class="ov" id="ov"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(label||'')}"><div class="grab"></div>${html}</div></div>`;
+  layer.innerHTML=`<div class="ov${full?' top':''}" id="ov"><div class="sheet${full?' full':''}" role="dialog" aria-modal="true" aria-label="${esc(label||'')}">${full?'':'<div class="grab"></div>'}${html}</div></div>`;
   $('#ov').addEventListener('click',e=>{if(e.target.id==='ov')closeSheet()});
   document.body.style.overflow='hidden';
   const f=layer.querySelector('[autofocus]')||layer.querySelector('.sheet button,.sheet a,.sheet input');f&&f.focus({preventScroll:true});
@@ -583,7 +593,7 @@ function filterSheet(){
   <div class="sheet-foot"><button class="btn" data-act="clear">清除</button><button class="btn pri" data-act="close">完成</button></div>`,'篩選場次');
 }
 function searchSheet(){
-  openSheet(`<h2>搜尋</h2><label class="search">${ICON.search}<span class="sr">搜尋電影或影城</span><input id="q" type="search" placeholder="片名、英文片名或影城" autocomplete="off" autofocus value="${esc(S.q)}"></label><div id="qr" style="margin-top:12px"></div>`,'搜尋');
+  openSheet(`<div class="qhead"><label class="search">${ICON.search}<span class="sr">搜尋電影或影城</span><input id="q" type="search" enterkeyhint="search" placeholder="片名、英文片名或影城" autocomplete="off" autofocus value="${esc(S.q)}"></label><button class="cancel" data-act="close">取消</button></div><div id="qr"></div>`,'搜尋',true);
   searchResults();
 }
 function searchResults(){
@@ -604,9 +614,12 @@ function ticketUrl(c,m,s){const t=s.url||c.ticketUrl||c.site||'#';return t.repla
 function ticketSheet(i){
   const s=DB.shows[i],c=DB.byC[s.cinema],m=DB.byM[s.movie];
   const direct=!!s.url&&DIRECT[c.chain];
+  const other=c.chain==='其他影城'; // 由開眼取得的獨立影城：連到該影城官網（沒有官網時連開眼時刻表）
+  const who=other?c.name:(c.chain||'官網');
+  const viaAt=other&&/atmovies/.test(ticketUrl(c,m,s));
   openSheet(`<h2>${esc(m.title)}</h2><div class="sum"><div><span>影城</span><b>${esc(c.name)}</b></div><div><span>時間</span><b>${md(s.date)} ${esc(s.time)}</b></div>${s.format||s.hall?`<div><span>版本／廳</span><b>${[s.format,s.hall].filter(Boolean).map(esc).join('・')}</b></div>`:''}${s.seats==='low'?'<div><span>座位</span><b style="color:var(--warn)">剩不多</b></div>':''}</div>
-  <a class="btn pri block" href="${esc(ticketUrl(c,m,s))}" target="_blank" rel="noopener noreferrer">到${esc(c.chain||'官網')}訂票</a>
-  <div class="note">${direct?'會直接打開這個場次的訂票頁。':`${esc(c.chain||'這家影城')}官網沒有單一場次的連結，打開後請再選一次 ${md(s.date)} ${esc(s.time)} 這場。`}票價、座位以官網為準。</div>
+  <a class="btn pri block" href="${esc(ticketUrl(c,m,s))}" target="_blank" rel="noopener noreferrer">${viaAt?'查看這間影城的時刻表':'到'+esc(who)+(other?'官網':'')+'訂票'}</a>
+  <div class="note">${direct?'會直接打開這個場次的訂票頁。':viaAt?'這間影城沒有線上訂票網站，可到現場購票或來電詢問。':`${esc(who)}官網沒有單一場次的連結，打開後請再選一次 ${md(s.date)} ${esc(s.time)} 這場。`}${other?'場次資料來自開眼電影網。':''}票價、座位以官網為準。</div>
   <div class="sheet-foot"><button class="btn" data-act="close">返回場次</button></div>`,'訂票');
 }
 function aboutSheet(){
@@ -686,7 +699,10 @@ document.addEventListener('input',e=>{
   if(e.target.id==='cq'){S.cq=e.target.value;renderCinemaList()}
 });
 document.addEventListener('change',e=>{if(e.target.id==='fileIn'&&e.target.files[0]){const r=new FileReader();r.onload=()=>loadJSON(r.result);r.readAsText(e.target.files[0])}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetOpen)closeSheet()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&sheetOpen)closeSheet();
+  if(e.key==='Enter'&&e.target.id==='q'){e.preventDefault();e.target.blur()} // 按「搜尋」收起鍵盤看結果
+});
 
 function fmtTime(iso){const d=new Date(iso);if(isNaN(d))return '';return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
 async function boot(force){

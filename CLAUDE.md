@@ -63,7 +63,9 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | in89 | 各據點 `in89cinemax.com/index.aspx?TheaterId=N` 有隱藏欄位 `theater_api`（如 `talee.in89.com.tw`）；`POST https://{host}/api/api_movie.php?method=getStagesByDate` 不需登入，回傳全部場次與電影 | 連據點頁 | TheaterId 1/18/15/17/2/16/14；**18 台中大里 theater_api 為空**，略過。海報 `https://{host}{253_img_path}` |
 | 樂聲 | `web/2020` 首頁 `div.movie-list`；`web/2020-movie_item.php?film_id=` 的 `.movie_time_out` | `2020_sel_ticket.php?...` 直達 | 官方規則「每日場次最晚於前一天 20:00 前公布」→ `publishRule: 'prevDay2000'` |
 
-**沒有加入**：光點、誠品電影院、南投戲院 — 找不到可讀取的線上場次（2026-11-18 再查：光點 `spot.org.tw/schedule/schedule_one.html` 的時刻表是一張圖片 `images/YYYY_MM_Schedule.jpg`；南投戲院沒有線上時刻表；誠品主要在臉書公告，`eslitecinema.com`、`ezding.com.tw` 網域在使用者電腦 DNS 解析不到）。若使用者給了網址再評估。
+| 其他影城（開眼電影網） | `atmovies.com.tw/showtime/{戲院代碼}/{地區}/`（今天），頁面「選擇日期」連結 `.../YYYYMMDD/` 為其他已公布日期；`ul[id=theaterShowtimeTable]` 每部片一塊，時間用全形冒號，分級圖示 `cer_G/P/F2/F5/R` | 連該戲院官網（開眼頁「網站」欄），沒有就連開眼時刻表 | `chains/atmovies.mjs` 的 `THEATERS` **白名單**：開眼全台 107 間中，扣掉各大影城官網已抓的，剩約 40 間獨立影城／藝文影院／二輪（光點、誠品、真善美、府中15、南投戲院、全美戲院…）。並行 2、每頁間隔 300ms、每間最多 7 天。cinema.chain 一律為「其他影城」 |
+
+**曾經無法加入、現由開眼補上**：光點（官網時刻表是圖片）、誠品（只在臉書公告）、南投戲院（電話語音）。**刻意不收**：開眼的「VR體感劇院」（非一般電影放映）、「喜樂時代高雄總圖店」（即喜樂時代高雄店，已由官網抓）。新增影城時，到開眼各縣市頁比對後把代碼加進白名單。
 
 ### 「下次公布」怎麼算（`scrape/index.mjs`）
 
@@ -125,7 +127,8 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 1. ~~確認 in89、樂聲、美麗新真實執行結果~~（已完成）
 2. ~~威秀失敗自動延遲重試~~（已完成，見「失敗重試」）；若重試後仍常失敗，再考慮拉長等待或放慢
 3. ~~美麗新開放訂票時間~~（已完成，wed1800）
-4. 光點 / 誠品 / 南投戲院：2026-11-18 再查仍無可讀來源，使用者若提供網址再加入
+4. ~~光點 / 誠品 / 南投戲院~~（已由開眼「其他影城」補上，連同其他約 40 間獨立影城）
+6. in89 台中大里：官網與開眼都沒有線上場次，暫缺
 5. ~~爬蟲下載海報一起發布~~（已完成，posters.mjs；125 張約 2.7MB）
 
 **注意**：在 repo 內跑 mock 會把真實海報全部刪掉（mock 的海報網址不同）→ 一律在副本跑。

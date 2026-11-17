@@ -13,14 +13,26 @@ import * as skcinemas from './chains/skcinemas.mjs';
 import * as in89 from './chains/in89.mjs';
 import * as lux from './chains/lux.mjs';
 import * as miranew from './chains/miranew.mjs';
+import * as atmovies from './chains/atmovies.mjs';
 
 // 順序 = 合併電影資訊時的優先順序（海報、簡介等取第一個有值的）
-const CHAINS = [showtimes, vieshow, ambassador, miramar, miranew, century, skcinemas, in89, lux];
+const CHAINS = [showtimes, vieshow, ambassador, miramar, miranew, century, skcinemas, in89, lux, atmovies];
 const OUT = path.resolve('docs');
 const RAW = path.join(OUT, 'raw');
 
 const only = process.argv.slice(2);
 const hash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.codePointAt(0), 16777619); return (h >>> 0).toString(36); };
+
+/** 片名近似：一方是另一方開頭（如「同級生」與「同級生:10週年重映」），或中文部分相同且英數字相同只是順序不同（如「cvf2026貓貓影片節」與「貓貓影片節cvf2026」） */
+function similarTitle(a, b) {
+  const [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  // 多出的部分只能是重映、週年、修復、某某版這類說明（避免「沙丘」誤併到「沙丘:第三部」）
+  const rest = l.slice(s.length);
+  if (s.length >= 2 && l.startsWith(s) && /^[:：\-(（]/.test(rest) && /重映|週年|修復|紀念|版|特別場/.test(rest) && !/第.部|\d+$/.test(rest)) return true;
+  const zh = (x) => x.replace(/[a-z0-9]+/gi, '');
+  const en = (x) => (x.toLowerCase().match(/[a-z0-9]+/g) || []).sort().join(' ');
+  return zh(a).length >= 3 && zh(a) === zh(b) && en(a) === en(b);
+}
 
 async function readJSON(p) { try { return JSON.parse(await fs.readFile(p, 'utf8')); } catch { return null; } }
 
@@ -84,11 +96,14 @@ async function main() {
   const cinemas = [];
   const shows = [];
 
+  // 依 CHAINS 順序合併（重試過的影城不會排到最後，海報等資訊的優先順序才正確）
+  raws.sort((a, b) => CHAINS.indexOf(a.c) - CHAINS.indexOf(b.c));
   for (const { c, data, fetchedAt } of raws) {
     const keyToId = {};
     for (const m of data.movies) {
-      const n = normTitle(m.title);
+      let n = normTitle(m.title);
       if (!n) continue;
+      if (c.fuzzyTitles && !movies.has(n)) { const alt = [...movies.keys()].find((k) => similarTitle(k, n)); if (alt) n = alt; }
       const id = 'm' + hash(n);
       keyToId[m.key] = id;
       const cur = movies.get(n) || { id, title: m.title, en: '', poster: '', runtime: 0, rating: '', genre: '', release: '', synopsis: '', chains: [] };

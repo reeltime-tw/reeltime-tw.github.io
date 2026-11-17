@@ -103,7 +103,8 @@ const DISTRICT = [
 export function cityOf(...s) {
   const t = s.join(' ').replace(/臺/g, '台');
   const full = t.match(new RegExp(`(${CITY_RE})(市|縣)`));
-  if (full) return full[1] + full[2];
+  // 「花蓮市」「台東市」這類是縣轄市，一律歸到縣（只有新竹、嘉義同時有市和縣）
+  if (full) return full[1] + (COUNTY.test(full[1]) ? '縣' : full[2]);
   const m = t.match(new RegExp(`(${CITY_RE})`));
   if (m) return m[1] + (COUNTY.test(m[1]) ? '縣' : '市'); // 新竹、嘉義沒寫明時以「市」為準
   for (const [c, ks] of DISTRICT) if (ks.some((k) => t.includes(k))) return c;
@@ -111,9 +112,17 @@ export function cityOf(...s) {
 }
 
 /* ---------- 片名比對 ---------- */
+// 中文數字（一～九十九）轉阿拉伯數字，讓「十週年」與「10週年」視為相同
+const CN = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+function cnNum(s) {
+  if (!s.includes('十')) return String(CN[s] ?? s);
+  const [a, b] = s.split('十');
+  return String((a ? CN[a] : 1) * 10 + (b ? CN[b] : 0));
+}
 export function normTitle(t) {
   return String(t || '')
     .normalize('NFKC')
+    .replace(/([一二三四五六七八九]?十[一二三四五六七八九]?|[一二三四五六七八九])(週年|周年)/g, (_, n, w) => cnNum(n) + '週年')
     .replace(/[《》「」『』〈〉【】]/g, '')
     .replace(/\s+/g, '')
     .replace(/[：:]/g, ':')
