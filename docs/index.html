@@ -349,7 +349,7 @@ function ticketSheet(i){
 }
 function dataSheet(){
   open(`<h2 style="margin:0 0 4px">資料來源</h2>
-  <div class="sub">${DB.demo?'目前為示範資料（模擬）':'自動抓取各影城官網，每小時更新'}${DB.updatedAt&&!DB.demo?'・更新於 '+fmtTime(DB.updatedAt):''}</div>
+  <div class="sub">${DB.demo?'目前為示範資料（模擬）':'自動抓取各影城官網，每天早上 8 點更新'}${DB.updatedAt&&!DB.demo?'・更新於 '+fmtTime(DB.updatedAt):''}</div>
   ${DB.status.length?`<div class="sum">${DB.status.map(x=>`<div><span>${esc(x.chain)}</span><b style="color:${x.ok?'var(--ok)':'var(--bad)'}">${x.ok?(x.shows?x.shows+' 場':'正常'):'更新失敗'}</b></div>`).join('')}</div>`:''}
   <h4>手動載入場次 JSON</h4>
   <div class="note" style="margin-top:0">測試用。貼上符合下方格式的資料，或選擇檔案。</div>

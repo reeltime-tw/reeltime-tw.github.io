@@ -22,17 +22,25 @@
 
 ## 運作方式
 
-GitHub Actions 每小時執行 `scrape/index.mjs` → 產生 `docs/data.json` → 連同 `docs/index.html` 發布到 GitHub Pages。
+你的 Windows 電腦每天早上 8:00 由「工作排程器」自動喚醒，執行 `windows/update.ps1`：
+抓取各影城場次 → 產生 `docs/data.json` → 推上 GitHub → GitHub Actions 自動發布到 GitHub Pages。
+
+改在自己電腦抓，是因為威秀、新光會擋國外主機（GitHub 的伺服器在美國）。
 某一家官網暫時連不上時，會沿用該影城上一次成功抓到的資料。
 
-## 第一次設定
+## 電腦端設定（只需一次）
 
-1. 把這個資料夾推到你的 GitHub 專案（建議設為 Public，免費方案的 GitHub Pages 需要公開專案）
-2. 專案頁面 → **Settings → Pages → Build and deployment → Source** 選 **GitHub Actions**
-3. **Actions** 分頁 → 左邊「更新場次」→ **Run workflow** 手動跑第一次
-4. 跑完後網址會顯示在 Settings → Pages，格式是 `https://你的帳號.github.io/專案名稱/`
+開啟 PowerShell（不用系統管理員），貼上這行後按 Enter：
 
-> 注意：GitHub 會在專案 60 天沒有任何更新時自動暫停排程，屆時會寄信通知，點信裡的按鈕或到 Actions 頁面重新啟用即可。
+```powershell
+irm https://raw.githubusercontent.com/xinyolee827-tech/tw-cinema/main/windows/setup.ps1 -OutFile $env:TEMP\tw-setup.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\tw-setup.ps1
+```
+
+它會：安裝 Git 與 Node.js（如果還沒有）→ 把專案下載到 `%USERPROFILE%\tw-cinema` → 建立每天 8:00 的排程（可喚醒電腦）→ 開啟電源計畫的「允許喚醒計時器」→ 立刻跑一次（第一次會請你登入 GitHub）。
+
+- 電腦要「睡眠」而不是「關機」，才能被叫醒
+- 執行紀錄在 `%USERPROFILE%\tw-cinema\windows\update.log`
+- 想改時間：開「工作排程器」找「tw-cinema 每日更新場次」
 
 ## 本機測試
 

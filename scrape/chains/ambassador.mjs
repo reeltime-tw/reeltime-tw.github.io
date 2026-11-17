@@ -51,11 +51,21 @@ export async function scrape() {
   const today = taipei().date;
   const shows = [];
   const cmap = new Map();
+  const url = (id, date) => `${BASE}/home/MovieContent?MID=${id}&DT=${date.replace(/-/g, '/')}`;
   await pool(now, 4, async (m) => {
-    for (let i = 0; i < 10; i++) {
-      const date = addDays(today, i);
-      const r = parseDay(parseHTML(await fetchText(`${BASE}/home/MovieContent?MID=${m.key}&DT=${date.replace(/-/g, '/')}`)), date);
-      if (!r.shows.length) break; // 尚未公布
+    // 每部片頁面上的日期選單列出「有場次的日期」（含預售、特別場），逐日讀取
+    const first = parseHTML(await fetchText(url(m.key, today)));
+    const dates = new Set();
+    for (const a of first.querySelectorAll('a[href*="DT="]')) {
+      const h = decodeURIComponent(a.getAttribute('href') || '');
+      if (!h.includes(m.key)) continue;
+      const d = h.match(/DT=(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      if (d) { const ymd = `${d[1]}-${d[2].padStart(2, '0')}-${d[3].padStart(2, '0')}`; if (ymd >= today) dates.add(ymd); }
+    }
+    if (!dates.size) dates.add(today);
+    for (const date of [...dates].sort().slice(0, 21)) {
+      const doc = date === today ? first : parseHTML(await fetchText(url(m.key, date)));
+      const r = parseDay(doc, date);
       const mv = movies.get(m.key);
       mv.rating ||= r.rating;
       for (const c of r.cinemas) cmap.set(c.name, c.addr);

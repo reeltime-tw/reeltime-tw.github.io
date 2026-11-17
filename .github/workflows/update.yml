@@ -1,11 +1,12 @@
-name: 更新場次
+name: 發布網站
 
+# 場次資料由你的電腦每天早上抓取後推上來（台灣網路，各影城都連得到），
+# 這裡只負責把 docs/ 發布到 GitHub Pages。
 on:
-  schedule:
-    - cron: '7 * * * *'   # 每小時第 7 分（UTC，GitHub 可能延遲數分鐘）
-  workflow_dispatch:      # 可在 Actions 頁面手動執行
   push:
     branches: [main]
+    paths: ['docs/**', '.github/workflows/**']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,39 +15,21 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  update:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-
-      # 取回上次各影城的資料，某家官網暫時失敗時沿用
-      - uses: actions/cache/restore@v4
-        with:
-          path: docs/raw
-          key: raw-${{ github.run_id }}
-          restore-keys: raw-
-
-      - name: 抓取各影城場次
-        run: npm run scrape
-
-      - uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: docs/raw
-          key: raw-${{ github.run_id }}
-
+      - name: 若專案內還沒有場次資料，沿用網站上現有的
+        run: |
+          if [ ! -f docs/data.json ]; then
+            curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json" -o docs/data.json || echo "目前沒有可沿用的資料"
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

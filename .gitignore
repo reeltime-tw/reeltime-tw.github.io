@@ -1,4 +1,3 @@
 node_modules/
-docs/data.json
-docs/raw/
 test/*.png
+windows/update.log
