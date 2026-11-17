@@ -206,6 +206,10 @@ main{padding:14px 0 24px;min-height:60vh}
 .sheet h2{margin:4px 0 12px;font-size:18px}
 .sheet h4{margin:18px 0 8px;font-size:14px;color:var(--ink2);font-weight:600}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
+.trange{display:flex;gap:10px}
+.trange label{flex:1;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
+.trange input{flex:1;min-width:0;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:inherit;font-size:16px;color:var(--ink)}
+.trange input:focus{border-color:var(--red);outline:none}
 .sum{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .sum div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-top:1px solid var(--line2);font-size:14.5px}
 .sum div:first-child{border-top:0}
@@ -261,7 +265,7 @@ const TODAY=new Date(); TODAY.setHours(0,0,0,0);
 const todayS=ymd(TODAY), tomorrowS=ymd(addDays(TODAY,1));
 const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
 // 影城把凌晨 0–3 點的午夜場列在前一天，排序時當成 24–27 點
-const tkey=t=>{const h=+t.slice(0,2);return (h<4?h+24:h)+t.slice(2)};
+const tkey=t=>{const h=+t.slice(0,2);return String(h<4?h+24:h).padStart(2,'0')+t.slice(2)};
 const dayName=s=>s===todayS?'今天':s===tomorrowS?'明天':'週'+WD[parseYmd(s).getDay()];
 const store={get(k,d){try{const v=localStorage.getItem('twc.'+k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem('twc.'+k,JSON.stringify(v))}catch{}}};
 const ICON={
@@ -349,17 +353,21 @@ function posterImg(m,eager){
 const rateTag=m=>m.rating?`<span class="rt rt-${esc(m.rating)}" title="${esc(m.rating)}級">${esc(m.rating.replace('輔',''))}</span>`:'';
 
 /* ================= 狀態 ================= */
-const S={route:'now',id:null,date:todayS,city:store.get('city','全台'),period:'全部',kinds:new Set(),chains:new Set(),favs:new Set(store.get('favs',[])),showPast:false,q:'',cq:''};
+const S={route:'now',id:null,date:todayS,city:store.get('city','全台'),from:'',to:'',kinds:new Set(),chains:new Set(),favs:new Set(store.get('favs',[])),showPast:false,q:'',cq:''};
 const $=s=>document.querySelector(s);
 const bar=$('#bar'), sub=$('#sub'), view=$('#view'), layer=$('#layer');
-const PERIODS={'全部':'全天','早':'中午前','午':'12–18 點','晚':'18 點後'};
-function inPeriod(t){if(S.period==='全部')return true;const h=+t.slice(0,2);return S.period==='早'?h<12:S.period==='午'?h>=12&&h<18:h>=18||h<4}
+// 時段：使用者自填「從 S.from 到 S.to」，留空代表不限；午夜場（0–3 點）算在當天最後
+const QUICK={'晚':['18:00',''],'早':['','12:00']}, QLABEL={'晚':'18 點後','早':'中午前'};
+function inPeriod(t){const k=tkey(t);if(S.from&&k<tkey(S.from))return false;if(S.to&&k>tkey(S.to))return false;return true}
+const periodOn=()=>!!(S.from||S.to);
+const periodLabel=()=>S.from&&S.to?S.from+'–'+S.to:S.from?S.from+' 後':S.to+' 前';
+const isQuick=p=>S.from===QUICK[p][0]&&S.to===QUICK[p][1];
 const isPast=s=>s.date===todayS&&s.time<nowHM()&&+s.time.slice(0,2)>=4;
 const showOK=s=>inPeriod(s.time)&&(!S.kinds.size||s._k.some(k=>S.kinds.has(k)));
 const areaCinemas=()=>DB.cinemas.filter(c=>(S.city==='全台'||c._city===S.city)&&(!S.chains.size||S.chains.has(c.chain)));
 const isFav=id=>S.favs.has(id);
 function toggleFav(id){S.favs.has(id)?S.favs.delete(id):S.favs.add(id);store.set('favs',[...S.favs]);toast(S.favs.has(id)?'已加入常用影城，會排在最前面':'已移出常用影城')}
-const filterCount=()=>(S.period!=='全部'?1:0)+S.kinds.size+S.chains.size;
+const filterCount=()=>(periodOn()?1:0)+S.kinds.size+S.chains.size;
 
 /* ================= 共用區塊 ================= */
 function dateStrip(dates,countFn){
@@ -370,10 +378,10 @@ function nextDates(n=10){const out=[];for(let i=0;i<n;i++){const s=ymd(addDays(T
 function filterBar(){
   const n=filterCount();
   const pills=[];
-  if(S.period!=='全部')pills.push(`<button class="chip x" data-unset="period">${PERIODS[S.period]} ${ICON.x}</button>`);
+  if(periodOn())pills.push(`<button class="chip x" data-unset="period">${periodLabel()} ${ICON.x}</button>`);
   S.kinds.forEach(k=>pills.push(`<button class="chip x" data-unset="kind" data-v="${esc(k)}">${esc(k)} ${ICON.x}</button>`));
   S.chains.forEach(k=>pills.push(`<button class="chip x" data-unset="chain" data-v="${esc(k)}">${esc(k)} ${ICON.x}</button>`));
-  const quick=n?'':['晚','早'].map(p=>`<button class="chip" data-period="${p}">${PERIODS[p]}</button>`).join('')+['IMAX','4DX'].map(k=>`<button class="chip" data-kind="${k}">${k}</button>`).join('');
+  const quick=n?'':['晚','早'].map(p=>`<button class="chip" data-period="${p}">${QLABEL[p]}</button>`).join('')+['IMAX','4DX'].map(k=>`<button class="chip" data-kind="${k}">${k}</button>`).join('');
   return `<div class="fbar"><button class="chip" data-act="filters" aria-pressed="${n>0}">${ICON.filter}篩選${n?`<span class="n">${n}</span>`:''}</button>${pills.join('')}${quick}</div>`;
 }
 function stubsHTML(list){
@@ -503,7 +511,7 @@ function pageMovie(id){
   // 這部片在這天有哪些版本
   const dayShows=cs.flatMap(c=>showsOf(c.id,m.id,S.date));
   const kinds=KINDS.filter(k=>dayShows.some(s=>s._k.includes(k)));
-  html+=`<div class="fbar">${['晚','早'].map(p=>`<button class="chip" data-period="${p}" aria-pressed="${S.period===p}">${PERIODS[p]}</button>`).join('')}${kinds.map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('')}${S.chains.size?[...S.chains].map(k=>`<button class="chip x" data-unset="chain" data-v="${esc(k)}">${esc(k)} ${ICON.x}</button>`).join(''):''}</div>`;
+  html+=`<div class="fbar">${['晚','早'].map(p=>`<button class="chip" data-period="${p}" aria-pressed="${isQuick(p)}">${QLABEL[p]}</button>`).join('')}${kinds.map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('')}${S.chains.size?[...S.chains].map(k=>`<button class="chip x" data-unset="chain" data-v="${esc(k)}">${esc(k)} ${ICON.x}</button>`).join(''):''}</div>`;
   // 影城：常用的排前面，其餘依縣市
   let pastN=0;
   const blocks=[];
@@ -545,7 +553,7 @@ function pageCinema(id){
   <div class="links"><a class="btn" href="${esc(map)}" target="_blank" rel="noopener noreferrer">地圖</a><a class="btn" href="${esc(c.site||'#')}" target="_blank" rel="noopener noreferrer">${c.chain==='其他影城'?(/atmovies/.test(c.site||'')?'開眼時刻表':'影城官網'):esc(c.chain||'')+'官網'}</a></div>
   <div style="margin-top:12px">${pubBox(c)}</div>`;
   html+=`<div class="sec-h" style="margin-bottom:0"><h2>場次</h2></div>`+dateStrip(dates,count);
-  html+=`<div class="fbar">${['晚','早'].map(p=>`<button class="chip" data-period="${p}" aria-pressed="${S.period===p}">${PERIODS[p]}</button>`).join('')}${KINDS.filter(k=>ms.some(m=>showsOf(c.id,m.id,S.date).some(s=>s._k.includes(k)))).map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('')}</div>`;
+  html+=`<div class="fbar">${['晚','早'].map(p=>`<button class="chip" data-period="${p}" aria-pressed="${isQuick(p)}">${QLABEL[p]}</button>`).join('')}${KINDS.filter(k=>ms.some(m=>showsOf(c.id,m.id,S.date).some(s=>s._k.includes(k)))).map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('')}</div>`;
   let pastN=0;const rows=[];
   for(const m of ms){const l=showsOf(c.id,m.id,S.date).filter(showOK);const f=l.filter(s=>!isPast(s));pastN+=l.length-f.length;const show=S.showPast?l:f;if(show.length)rows.push({m,show})}
   rows.sort((a,b)=>tkey(a.show[0].time).localeCompare(tkey(b.show[0].time)));
@@ -587,7 +595,7 @@ function locSheet(){
 function filterSheet(){
   const kindN=k=>DB.shows.some(s=>s.date===S.date&&s._k.includes(k));
   openSheet(`<h2>篩選場次</h2>
-  <h4>時段</h4><div class="opts">${Object.entries(PERIODS).map(([k,v])=>`<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>
+  <h4>時段</h4><div class="trange"><label><span>從</span><input type="time" id="tFrom" value="${S.from}" aria-label="開始時間"></label><label><span>到</span><input type="time" id="tTo" value="${S.to}" aria-label="結束時間"></label></div><div class="note" style="margin-top:6px">留空表示不限。凌晨 0–3 點的午夜場算在當天晚上。</div>
   <h4>特殊廳／版本</h4><div class="opts">${KINDS.filter(kindN).map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('')||'<span class="note" style="margin:0">這天沒有特殊廳場次</span>'}</div>
   <h4>影城品牌</h4><div class="opts">${DB.chains.map(k=>`<button class="chip" data-chain="${esc(k)}" aria-pressed="${S.chains.has(k)}">${esc(k)}</button>`).join('')}</div>
   <div class="sheet-foot"><button class="btn" data-act="clear">清除</button><button class="btn pri" data-act="close">完成</button></div>`,'篩選場次');
@@ -673,10 +681,10 @@ document.addEventListener('click',e=>{
   const d=t.dataset;
   if(d.act==='close-nav'){if(sheetOpen){layer.innerHTML='';document.body.style.overflow='';sheetOpen=false;e.preventDefault();history.replaceState(null,'',t.getAttribute('href'));parseRoute();render();window.scrollTo(0,0)}return}
   if(d.date){S.date=d.date;S.showPast=false;return render(true)}
-  if(d.period){S.period=S.period===d.period?'全部':d.period;return rerender()}
+  if(d.period){if(isQuick(d.period)){S.from='';S.to=''}else{[S.from,S.to]=QUICK[d.period]}return rerender()}
   if(d.kind){S.kinds.has(d.kind)?S.kinds.delete(d.kind):S.kinds.add(d.kind);return rerender()}
   if(d.chain){S.chains.has(d.chain)?S.chains.delete(d.chain):S.chains.add(d.chain);return rerender()}
-  if(d.unset){if(d.unset==='period')S.period='全部';if(d.unset==='kind')S.kinds.delete(d.v);if(d.unset==='chain')S.chains.delete(d.v);return render(true)}
+  if(d.unset){if(d.unset==='period'){S.from='';S.to=''}if(d.unset==='kind')S.kinds.delete(d.v);if(d.unset==='chain')S.chains.delete(d.v);return render(true)}
   if(d.setcity){S.city=d.setcity;store.set('city',S.city);store.set('askedCity',true);if(sheetOpen)closeSheet();return render()}
   if(d.fav){toggleFav(d.fav);return render(true)}
   if(d.show){return ticketSheet(+d.show)}
@@ -685,7 +693,7 @@ document.addEventListener('click',e=>{
     case 'loc':return locSheet();
     case 'search':return searchSheet();
     case 'filters':return filterSheet();
-    case 'clear':S.period='全部';S.kinds.clear();S.chains.clear();render(true);if(sheetOpen)filterSheetRefresh();return;
+    case 'clear':S.from='';S.to='';S.kinds.clear();S.chains.clear();render(true);if(sheetOpen)filterSheetRefresh();return;
     case 'close':return closeSheet();
     case 'past':S.showPast=!S.showPast;return render(true);
     case 'syn':{const p=$('#syn');p.classList.toggle('open');t.textContent=p.classList.contains('open')?'收合簡介':'展開簡介';return}
@@ -698,7 +706,8 @@ document.addEventListener('input',e=>{
   if(e.target.id==='q'){S.q=e.target.value;searchResults()}
   if(e.target.id==='cq'){S.cq=e.target.value;renderCinemaList()}
 });
-document.addEventListener('change',e=>{if(e.target.id==='fileIn'&&e.target.files[0]){const r=new FileReader();r.onload=()=>loadJSON(r.result);r.readAsText(e.target.files[0])}});
+document.addEventListener('change',e=>{
+  if(e.target.id==='tFrom'||e.target.id==='tTo'){S[e.target.id==='tFrom'?'from':'to']=e.target.value||'';render(true);return}if(e.target.id==='fileIn'&&e.target.files[0]){const r=new FileReader();r.onload=()=>loadJSON(r.result);r.readAsText(e.target.files[0])}});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheetOpen)closeSheet();
   if(e.key==='Enter'&&e.target.id==='q'){e.preventDefault();e.target.blur()} // 按「搜尋」收起鍵盤看結果
