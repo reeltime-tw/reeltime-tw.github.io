@@ -4,6 +4,8 @@ import { fetchText, parseHTML, pool, abs, text, pageText, regionOf, cityOf, slee
 export const chain = '威秀';
 export const site = 'https://www.vscinemas.com.tw/';
 const BASE = 'https://www.vscinemas.com.tw/vsweb/film/';
+// 被暫時拒絕時，等 5 分鐘再重試一次（由 index.mjs 處理）
+export const retryDelayMs = 5 * 60_000;
 
 function parseList(doc) {
   return [...doc.querySelectorAll('ul.movieList > li')].map((li) => {

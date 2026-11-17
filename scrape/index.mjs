@@ -2,7 +2,7 @@
 // 單一影城失敗時沿用上次成功的資料，不會讓整份資料消失。
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { taipei, addDays, normTitle } from './util.mjs';
+import { taipei, addDays, normTitle, sleep } from './util.mjs';
 import * as showtimes from './chains/showtimes.mjs';
 import * as vieshow from './chains/vieshow.mjs';
 import * as ambassador from './chains/ambassador.mjs';
@@ -29,11 +29,9 @@ async function main() {
   const status = [];
   const raws = [];
 
-  for (const c of CHAINS) {
-    const file = path.join(RAW, `${hash(c.chain)}.json`);
-    if (only.length && !only.includes(c.chain)) { const prev = await readJSON(file); if (prev) raws.push({ c, ...prev }); continue; }
+  // 抓一家影城；成功就存檔並回傳 true，失敗回傳錯誤訊息
+  async function attempt(c, file) {
     const t0 = Date.now();
-    console.log(`▶ ${c.chain}`);
     try {
       const r = await c.scrape();
       if (!r.shows.length) throw new Error('沒有抓到任何場次（官網可能改版或擋連線）');
@@ -42,13 +40,43 @@ async function main() {
       raws.push({ c, ...rec });
       status.push({ chain: c.chain, ok: true, fetchedAt: nowISO, cinemas: r.cinemas.length, shows: r.shows.length });
       console.log(`  ✓ ${r.cinemas.length} 影城 / ${r.movies.length} 電影 / ${r.shows.length} 場次（${((Date.now() - t0) / 1000).toFixed(1)}s）`);
+      return true;
     } catch (e) {
       console.error(`  ✗ ${e.message}`);
-      const prev = await readJSON(file);
-      if (prev) raws.push({ c, ...prev });
-      status.push({ chain: c.chain, ok: false, error: String(e.message).slice(0, 200), fetchedAt: prev?.fetchedAt || null });
+      return String(e.message);
     }
   }
+
+  async function giveUp(c, file, msg) {
+    const prev = await readJSON(file);
+    if (prev) raws.push({ c, ...prev });
+    status.push({ chain: c.chain, ok: false, error: msg.slice(0, 200), fetchedAt: prev?.fetchedAt || null });
+  }
+
+  // 第一輪：依序抓每一家；失敗的先記下來，等其他家跑完再重試一次
+  const failed = [];
+  for (const c of CHAINS) {
+    const file = path.join(RAW, `${hash(c.chain)}.json`);
+    if (only.length && !only.includes(c.chain)) { const prev = await readJSON(file); if (prev) raws.push({ c, ...prev }); continue; }
+    console.log(`▶ ${c.chain}`);
+    const res = await attempt(c, file);
+    if (res !== true) failed.push({ c, file, at: Date.now() });
+  }
+
+  // 第二輪：失敗的影城等一段時間後再試一次（威秀被暫時拒絕時通常幾分鐘後就恢復）
+  // 等待時間由各影城檔的 retryDelayMs 決定，預設 1 分鐘；測試時可用環境變數 RETRY_WAIT_MS 縮短
+  for (const f of failed) {
+    const delay = process.env.RETRY_WAIT_MS !== undefined ? +process.env.RETRY_WAIT_MS : (f.c.retryDelayMs ?? 60_000);
+    const wait = Math.max(0, f.at + delay - Date.now());
+    console.log(`▶ ${f.c.chain}（重試${wait ? `，先等 ${Math.round(wait / 1000)} 秒` : ''}）`);
+    if (wait) await sleep(wait);
+    const res = await attempt(f.c, f.file);
+    if (res !== true) await giveUp(f.c, f.file, res);
+  }
+
+  // 狀態維持原本影城順序（重試過的不會跑到最後）
+  const order = (ch) => CHAINS.findIndex((c) => c.chain === ch);
+  status.sort((a, b) => order(a.chain) - order(b.chain));
 
   const today = taipei().date;
   const movies = new Map(); // norm → movie
