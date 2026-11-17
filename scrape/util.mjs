@@ -87,10 +87,27 @@ export function regionOf(...s) {
   for (const [r, ks] of REGION) if (ks.some((k) => t.includes(k))) return r;
   return '北部';
 }
+const CITY_RE = '台北|臺北|新北|基隆|桃園|新竹|苗栗|台中|臺中|彰化|南投|雲林|嘉義|台南|臺南|高雄|屏東|宜蘭|花蓮|台東|臺東|澎湖|金門|連江';
+const COUNTY = /^(苗栗|彰化|南投|雲林|屏東|宜蘭|花蓮|台東|澎湖|金門|連江)$/;
+// 店名只寫行政區時（如「板橋大遠百」）用來判斷縣市
+const DISTRICT = [
+  ['新北市', ['板橋', '新店', '中和', '永和', '土城', '樹林', '林口', '三重', '新莊', '汐止', '淡水', '蘆洲', '三峽']],
+  ['桃園市', ['中壢', '青埔', '蘆竹', '八德', '平鎮']],
+  ['新竹縣', ['竹北']],
+  ['苗栗縣', ['頭份', '竹南']],
+  ['台中市', ['大里', '豐原', '后里', '太平']],
+  ['雲林縣', ['斗六', '北港']],
+  ['高雄市', ['岡山', '鳳山', '左營', '鹽埕', '夢時代']],
+  ['宜蘭縣', ['羅東']],
+];
 export function cityOf(...s) {
-  const t = s.join(' ');
-  const m = t.match(/(台北|臺北|新北|基隆|桃園|新竹|苗栗|台中|臺中|彰化|南投|雲林|嘉義|台南|臺南|高雄|屏東|宜蘭|花蓮|台東|臺東|澎湖|金門|連江)[市縣]?/);
-  return m ? m[1].replace('臺', '台') + (/(新竹|嘉義)/.test(m[1]) ? '' : (/(苗栗|彰化|南投|雲林|屏東|宜蘭|花蓮|台東|臺東|澎湖|金門|連江)/.test(m[1]) ? '縣' : '市')) : '';
+  const t = s.join(' ').replace(/臺/g, '台');
+  const full = t.match(new RegExp(`(${CITY_RE})(市|縣)`));
+  if (full) return full[1] + full[2];
+  const m = t.match(new RegExp(`(${CITY_RE})`));
+  if (m) return m[1] + (COUNTY.test(m[1]) ? '縣' : '市'); // 新竹、嘉義沒寫明時以「市」為準
+  for (const [c, ks] of DISTRICT) if (ks.some((k) => t.includes(k))) return c;
+  return '';
 }
 
 /* ---------- 片名比對 ---------- */

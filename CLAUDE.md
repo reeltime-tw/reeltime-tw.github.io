@@ -35,7 +35,7 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | `scrape/index.mjs` | 主程式：依序跑各影城、合併、計算公布資訊、輸出 `docs/data.json`。`node scrape/index.mjs 秀泰` 可只跑一家 |
 | `scrape/util.mjs` | fetch 重試、linkedom 解析、台北時區、分級/地區/片名正規化 |
 | `scrape/chains/*.mjs` | 每家影城一個檔，匯出 `chain`、`site`、`scrape()` |
-| `docs/index.html` | App（單檔 HTML/CSS/JS，讀 `data.json`；載入失敗時顯示示範資料） |
+| `docs/index.html` | App（單檔 HTML/CSS/JS，讀 `data.json`；載入失敗時顯示示範資料）。2026-11-18 淺色系改版，見「介面設計」 |
 | `scrape/posters.mjs` | 下載海報、用 sharp 縮成寬 300px WebP 存到 `docs/posters/{sha1(url)前16碼}.webp`；已有的不重抓、沒用到的刪除；電影加上 `posterLocal`。App 依序用 posterLocal → poster（官網）→ 產生的替代圖 |
 | `docs/data.json`、`docs/raw/*.json`、`docs/posters/` | 由使用者電腦產生並提交。`raw/` 是各影城上次成功的原始資料（某家失敗時沿用） |
 | `windows/setup.ps1` | 一次性設定：裝 Git/Node、clone 到 `%USERPROFILE%\tw-cinema`、建排程（WakeToRun）、開喚醒計時器、先跑一次 |
@@ -100,6 +100,24 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 - 排程是 Interactive 登入類型：**重開機後要登入一次**，否則 8 點不會跑
 - 手動更新：PowerShell 執行 `Start-ScheduledTask "tw-cinema 每日更新場次"`；不要短時間連跑（威秀會擋）
 - 驗證是否成功：網站標題下方「場次更新於 ...」
+
+## 介面設計（2026-11-18 改版）
+
+**研究摘要**（競品：電影時刻 MovieLife、MovieGo、此刻 Right Now、ez訂、Fandango、AMC App 評論）
+- 大家喜歡：常用影城置頂、依縣市篩選、可看未來幾天、特殊廳（IMAX/4DX）篩選、電影頁集中資訊並一鍵訂票
+- 常見抱怨：查詢慢／跑不出來、沒涵蓋全部影城、只能看今天、字太小、日期與地點控制不明顯、改版後「太簡潔」反而難用、閃退與廣告
+- 舊版自己的問題：頂部篩選列太多層（分頁＋上映中/即將上映＋日期＋地區＋時段＋品牌）、地區只有北中南東、沒有搜尋與常用影城、電影/影城是彈出面板導致**手機返回鍵直接離開網站**、已開演場次仍顯示、每張影城卡都重複公布資訊
+
+**新架構**
+- 底部 3 分頁：現正上映 `#/`、影城 `#/cinemas`、即將上映 `#/soon`；電影頁 `#/movie/{id}`、影城頁 `#/cinema/{id}` 是獨立頁面（hash 路由，返回鍵可用、記住捲動位置）
+- 頂部：縣市選擇（localStorage `twc.city`）＋搜尋；常用影城存在 `twc.favs`，排在最前面
+- 篩選：時段／特殊廳（`kindsOf()` 把各家版本文字歸成 IMAX、4DX、ScreenX、杜比、3D、豪華廳）／品牌，放在「篩選」面板，已選的以可移除標籤顯示
+- 凌晨 0–3 點的午夜場排在當天最後（`tkey()`）；今天已開演的場次預設隱藏
+- 面板（縣市、篩選、搜尋、訂票確認、資料來源）用 pushState，手機返回鍵先關面板；程式自己關面板時用 `ignorePop` 略過對應的 popstate
+- 舊資料縣市不完整時，App 端 `cityOf()` 也會推斷；爬蟲 `util.mjs` 的 `cityOf` 已補行政區對照（新店→新北市、頭份→苗栗縣…）
+- `test/ui.py` 已依新介面改寫
+
+**視覺**：淺色、白底卡片，唯一強調色 `#b3122e`（戲院座椅紅）只用於選取狀態與訂票按鈕；時間與日期用 Google Fonts「Barlow Condensed」；場次按鈕做成兩側有半圓缺口的「票根」。分級色：普綠、護藍、輔12黃、輔15橘、限紅。
 
 ## 待辦 / 可改進
 
