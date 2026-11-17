@@ -22,10 +22,18 @@ export function extractCinemaList(html) {
 
 export async function scrape() {
   const data = extractCinemaList(await fetchText(TICKET));
+  // 確認官方公告仍是「週三 18:00 公布週五至下週四」；公告改了就退回推估，避免顯示錯的時間
+  let rule;
+  try {
+    const t = (await fetchText(BASE + '/Booking/StartOrderTime')).replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+    if (/週五上映之電影，於當週三下午18:00後公布場次，開放當週五至下週四/.test(t)) rule = 'wed1800';
+    else console.warn('  ! 美麗新開放訂票時間公告內容改變，改用推估');
+  } catch (e) { console.warn('  ! 美麗新公告讀取失敗 ' + e.message); }
   const cinemas = [], movies = new Map(), shows = [];
   for (const c of data?.Data?.CinemaGroup || []) {
     const id = 'mn-' + c.CinemaId;
-    cinemas.push({ id, chain, name: c.CinemaCName, ...(INFO[c.CinemaId] || { city: '', region: '北部', addr: '' }), site, ticketUrl: TICKET });
+    // 官網「開放場次訂票時間」（/Booking/StartOrderTime）：週三 18:00 後公布週五至下週四 → publishRule 'wed1800'
+    cinemas.push({ id, chain, name: c.CinemaCName, ...(INFO[c.CinemaId] || { city: '', region: '北部', addr: '' }), site, ticketUrl: TICKET, publishRule: rule });
     for (const m of c.MovieInfo || []) {
       const ratingTxt = (m.MovieCName.match(/\(([普護輔限][^)]*)\)\s*$/) || [])[1] || '';
       const title = m.MovieCName.replace(/\s*\([普護輔限][^)]*\)\s*$/, '').trim();

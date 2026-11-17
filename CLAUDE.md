@@ -36,7 +36,8 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | `scrape/util.mjs` | fetch 重試、linkedom 解析、台北時區、分級/地區/片名正規化 |
 | `scrape/chains/*.mjs` | 每家影城一個檔，匯出 `chain`、`site`、`scrape()` |
 | `docs/index.html` | App（單檔 HTML/CSS/JS，讀 `data.json`；載入失敗時顯示示範資料） |
-| `docs/data.json`、`docs/raw/*.json` | 由使用者電腦產生並提交。`raw/` 是各影城上次成功的原始資料（某家失敗時沿用） |
+| `scrape/posters.mjs` | 下載海報、用 sharp 縮成寬 300px WebP 存到 `docs/posters/{sha1(url)前16碼}.webp`；已有的不重抓、沒用到的刪除；電影加上 `posterLocal`。App 依序用 posterLocal → poster（官網）→ 產生的替代圖 |
+| `docs/data.json`、`docs/raw/*.json`、`docs/posters/` | 由使用者電腦產生並提交。`raw/` 是各影城上次成功的原始資料（某家失敗時沿用） |
 | `windows/setup.ps1` | 一次性設定：裝 Git/Node、clone 到 `%USERPROFILE%\tw-cinema`、建排程（WakeToRun）、開喚醒計時器、先跑一次 |
 | `windows/update.ps1` | 每日執行；用 SetThreadExecutionState 防止執行中睡著；紀錄在 `windows/update.log` |
 | `test/mock.mjs` | 用模擬回應跑完整流程（結構依實際官網觀察而寫） |
@@ -56,12 +57,12 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | 國賓 | `home/MovieList?Type=1/2`；`home/MovieContent?MID=&DT=YYYY/MM/DD`，`.theater-box` | 只有 `booking.ambassador.com.tw` 首頁 | 每部片頁面的日期選單（`a[href*=DT=]`）列出有場次的日期，**含預售與特別場**，要照它逐日抓（之前從今天往後找、遇空就停，漏了一半） |
 | 新光 | 首頁 `[data-action-url*=/Films/FP]`；`Films/FP?filmId&cinemaId&isNowShowing=True` | `.session-info[data-action-url]` → `/Booking/Booking?cinemaId&filmId&sessionId` 直達 | **首頁輪播那筆沒有 isNowShowing**，要以下方清單的標記為準（曾因此 0 場）。cinemaId 1001–1005 |
 | 美麗華（大直） | `/timetable` 一頁全部 | `/Booking/TicketType?id&session` 直達 | **`/Home/startordertime` 官方公布時間公告**，解析成 publish（畫面顯示「官方公告」） |
-| 美麗新（台茂 1004、大直皇家 1005） | `/Booking/Timetable` 內嵌 `var CinemaList = '{json}'` | 官網用表單 POST，無單場連結 → 連場次表頁 | 宏匯店 2025-12-22 停業。官網也有「開放場次訂票時間」選單但沒找到可讀頁面。海報路徑 `/MiramarApp/Resource/{PostUrl}_S.jpg` 為推斷 |
+| 美麗新（台茂 1004、大直皇家 1005） | `/Booking/Timetable` 內嵌 `var CinemaList = '{json}'` | 官網用表單 POST，無單場連結 → 連場次表頁 | 宏匯店 2025-12-22 停業。`/Booking/StartOrderTime` 官方規則「週五上映片於當週三 18:00 後公布週五至下週四」→ `publishRule: 'wed1800'`（每次抓取都比對公告文字，改了就退回推估）。海報路徑 `/MiramarApp/Resource/{PostUrl}_S.jpg` 已驗證 |
 | 喜樂時代 | `Movie/GetTheaterList`、`Movie/GetMovieList/{site}`、**逐日** `Movie/GetMovieAlltime/{site}/{programid}/{date}`（回「查無資料」= 未公布） | 只能連 `book.html?sid=` | 4 間：Nangang/Beyond(永和)/Kaohsiung/Ximen(今日店) |
 | in89 | 各據點 `in89cinemax.com/index.aspx?TheaterId=N` 有隱藏欄位 `theater_api`（如 `talee.in89.com.tw`）；`POST https://{host}/api/api_movie.php?method=getStagesByDate` 不需登入，回傳全部場次與電影 | 連據點頁 | TheaterId 1/18/15/17/2/16/14；**18 台中大里 theater_api 為空**，略過。海報 `https://{host}{253_img_path}` |
 | 樂聲 | `web/2020` 首頁 `div.movie-list`；`web/2020-movie_item.php?film_id=` 的 `.movie_time_out` | `2020_sel_ticket.php?...` 直達 | 官方規則「每日場次最晚於前一天 20:00 前公布」→ `publishRule: 'prevDay2000'` |
 
-**沒有加入**：光點、誠品電影院、南投戲院 — 找不到可讀取的線上場次（光點時刻表頁沒有文字場次；南投靠電話語音；誠品主要在臉書公告）。若使用者給了網址再評估。ez訂（ezding）可能涵蓋小影城，但在使用者 Chrome 開啟時被導走，未完成調查。
+**沒有加入**：光點、誠品電影院、南投戲院 — 找不到可讀取的線上場次（2026-11-18 再查：光點 `spot.org.tw/schedule/schedule_one.html` 的時刻表是一張圖片 `images/YYYY_MM_Schedule.jpg`；南投戲院沒有線上時刻表；誠品主要在臉書公告，`eslitecinema.com`、`ezding.com.tw` 網域在使用者電腦 DNS 解析不到）。若使用者給了網址再評估。
 
 ### 「下次公布」怎麼算（`scrape/index.mjs`）
 
@@ -104,6 +105,8 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 
 1. ~~確認 in89、樂聲、美麗新真實執行結果~~（已完成）
 2. ~~威秀失敗自動延遲重試~~（已完成，見「失敗重試」）；若重試後仍常失敗，再考慮拉長等待或放慢
-3. 美麗新的「開放場次訂票時間」公告頁找出網址後接上 official publish
-4. 光點 / 誠品 / 南投戲院：使用者若提供可讀來源再加入
-5. App 內海報若被防盜連擋住，目前會自動換成產生的替代海報；可考慮由爬蟲下載海報一起發布
+3. ~~美麗新開放訂票時間~~（已完成，wed1800）
+4. 光點 / 誠品 / 南投戲院：2026-11-18 再查仍無可讀來源，使用者若提供網址再加入
+5. ~~爬蟲下載海報一起發布~~（已完成，posters.mjs；125 張約 2.7MB）
+
+**注意**：在 repo 內跑 mock 會把真實海報全部刪掉（mock 的海報網址不同）→ 一律在副本跑。

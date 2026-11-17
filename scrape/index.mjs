@@ -3,6 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { taipei, addDays, normTitle, sleep } from './util.mjs';
+import { savePosters } from './posters.mjs';
 import * as showtimes from './chains/showtimes.mjs';
 import * as vieshow from './chains/vieshow.mjs';
 import * as ambassador from './chains/ambassador.mjs';
@@ -125,6 +126,13 @@ async function main() {
       // 官方規則：每天的場次最晚在前一天 20:00 公布
       const next = until ? addDays(until, 1) : addDays(today, 1);
       ci.publish = { publishedUntil: until, nextAt: `${addDays(next, -1)}T20:00`, rangeFrom: next, rangeTo: next, official: true };
+    } else if (ci.publishRule === 'wed1800') {
+      // 官方規則（美麗新）：每週三 18:00 後公布當週五至下週四的場次
+      const now = taipei();
+      const dow = new Date(now.date + 'T00:00:00Z').getUTCDay(); // 0=日 … 3=三
+      let wed = addDays(now.date, (3 - dow + 7) % 7);
+      if (wed === now.date && now.time >= '18:00') wed = addDays(wed, 7);
+      ci.publish = { publishedUntil: until, nextAt: `${wed}T18:00`, rangeFrom: addDays(wed, 2), rangeTo: addDays(wed, 8), official: true };
     } else ci.publish = { publishedUntil: until, nextAt: addDays(today, 1), rangeFrom: until ? addDays(until, 1) : today, rangeTo: until ? addDays(until, 1) : today, estimated: true };
     delete ci.publishRule;
     ci.publish.presale = presale;
@@ -138,6 +146,8 @@ async function main() {
     if (!soon && !used.has(m.id)) continue;
     outMovies.push({ ...m, status: soon ? 'soon' : 'now', presale: soon && used.has(m.id) });
   }
+
+  try { await savePosters(outMovies, OUT); } catch (e) { console.warn('  ! 海報下載失敗 ' + e.message); }
 
   const out = { updatedAt: nowISO, today, status: [...status, ...raws.filter((r) => !status.find((s) => s.chain === r.chain)).map((r) => ({ chain: r.chain, ok: true, fetchedAt: r.fetchedAt, cached: true }))], movies: outMovies, cinemas, showtimes: uniq };
   await fs.writeFile(path.join(OUT, 'data.json'), JSON.stringify(out));

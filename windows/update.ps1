@@ -26,7 +26,7 @@ try {
   node scrape/index.mjs
   if ($LASTEXITCODE -ne 0) { Write-Host '!! 所有影城都抓取失敗，這次不上傳' ; exit 1 }
 
-  git add -f docs/data.json docs/raw
+  git add -f -A docs/data.json docs/raw docs/posters
   git diff --cached --quiet
   if ($LASTEXITCODE -ne 0) {
     git commit -m ("update showtimes " + (Get-Date -Format 'yyyy-MM-dd HH:mm'))

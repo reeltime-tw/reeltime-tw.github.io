@@ -215,7 +215,12 @@ function setData(raw){
 const showsOf=(c,m,d)=>IDX[c+'|'+m+'|'+d]||[];
 const published=(c,d)=>!c.publish?.publishedUntil||d<=c.publish.publishedUntil;
 
-/* ---- 海報：優先使用 poster；沒有或載入失敗時產生替代圖 ---- */
+/* ---- 海報：優先用網站自帶的 posterLocal，失敗改用官網 poster，再失敗產生替代圖 ---- */
+function posterErr(img){
+  const r=img.dataset.remote;
+  if(r&&img.getAttribute('src')!==r){img.dataset.remote='';img.src=r;return}
+  img.onerror=null;img.src=img.dataset.fb;
+}
 function fallbackPoster(m){
   const h=m.hue??(Math.abs([...m.title].reduce((a,c)=>a+c.charCodeAt(0),0))%360);
   const t=[...m.title].slice(0,8);
@@ -226,8 +231,9 @@ function fallbackPoster(m){
 }
 function posterImg(m,cls=''){
   const fb=fallbackPoster(m);
-  const src=m.poster||fb;
-  return `<img class="${cls}" referrerpolicy="no-referrer" alt="${esc(m.title)} 海報" loading="lazy" src="${esc(src)}" onerror="this.onerror=null;this.src=this.dataset.fb" data-fb="${fb.replace(/"/g,'&quot;')}">`;
+  const src=m.posterLocal||m.poster||fb;
+  const remote=m.posterLocal&&m.poster?m.poster:'';
+  return `<img class="${cls}" referrerpolicy="no-referrer" alt="${esc(m.title)} 海報" loading="lazy" src="${esc(src)}" onerror="posterErr(this)" data-remote="${esc(remote)}" data-fb="${fb.replace(/"/g,'&quot;')}">`;
 }
 
 /* ================= 狀態與畫面 ================= */
