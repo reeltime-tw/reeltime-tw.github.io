@@ -14,21 +14,27 @@ const CINEMAS = [
 ];
 
 function parseHome(doc) {
+  // 同一部片在首頁會出現多次：最上方輪播沒有 isNowShowing，下面的「現正熱映／即將上映」清單才有。
+  // 以有標記的那一筆為準（海報、片名也取那一筆）。
   const films = new Map();
   for (const el of doc.querySelectorAll('[data-action-url*="/Films/FP"]')) {
     const u = new URL(el.getAttribute('data-action-url'), BASE);
     const id = u.searchParams.get('filmId');
-    if (!id || films.has(id)) continue;
+    if (!id) continue;
+    const flag = u.searchParams.get('isNowShowing');
+    const prev = films.get(id);
+    if (prev && (prev.flag !== null || flag === null)) { if (flag === 'True') prev.now = true; continue; }
     let card = el;
     for (let i = 0; i < 6 && card && !card.querySelector('img'); i++) card = card.parentElement;
     const t = text(card);
     const img = card?.querySelector('img');
     films.set(id, {
       key: id,
-      now: u.searchParams.get('isNowShowing') === 'True',
-      title: t.split('上映日期')[0].trim(),
+      flag,
+      now: flag === 'True' || !!prev?.now,
+      title: t.split('上映日期')[0].replace(/電影介紹|線上訂票/g, '').trim(),
       release: ((t.match(/上映日期[：:]\s*(\d{4})\/(\d{1,2})\/(\d{1,2})/) || []).slice(1).map((x, i) => (i ? x.padStart(2, '0') : x)).join('-')),
-      poster: img ? abs(img.getAttribute('src'), BASE) : '',
+      poster: img ? abs(img.getAttribute('src'), BASE) : (prev?.poster || ''),
     });
   }
   return [...films.values()];
