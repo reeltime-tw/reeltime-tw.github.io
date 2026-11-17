@@ -9,9 +9,12 @@ import * as ambassador from './chains/ambassador.mjs';
 import * as miramar from './chains/miramar.mjs';
 import * as century from './chains/century.mjs';
 import * as skcinemas from './chains/skcinemas.mjs';
+import * as in89 from './chains/in89.mjs';
+import * as lux from './chains/lux.mjs';
+import * as miranew from './chains/miranew.mjs';
 
 // 順序 = 合併電影資訊時的優先順序（海報、簡介等取第一個有值的）
-const CHAINS = [showtimes, vieshow, ambassador, miramar, century, skcinemas];
+const CHAINS = [showtimes, vieshow, ambassador, miramar, miranew, century, skcinemas, in89, lux];
 const OUT = path.resolve('docs');
 const RAW = path.join(OUT, 'raw');
 
@@ -89,9 +92,13 @@ async function main() {
     let d = today; while (ds.has(d)) d = addDays(d, 1);
     const until = ds.size ? addDays(d, -1) : null;
     const presale = [...ds].filter((x) => until && x > until).length > 0;
-    ci.publish = ci.publish?.official
-      ? { ...ci.publish, publishedUntil: until }
-      : { publishedUntil: until, nextAt: addDays(today, 1), rangeFrom: until ? addDays(until, 1) : today, rangeTo: until ? addDays(until, 1) : today, estimated: true };
+    if (ci.publish?.official) ci.publish = { ...ci.publish, publishedUntil: until };
+    else if (ci.publishRule === 'prevDay2000') {
+      // 官方規則：每天的場次最晚在前一天 20:00 公布
+      const next = until ? addDays(until, 1) : addDays(today, 1);
+      ci.publish = { publishedUntil: until, nextAt: `${addDays(next, -1)}T20:00`, rangeFrom: next, rangeTo: next, official: true };
+    } else ci.publish = { publishedUntil: until, nextAt: addDays(today, 1), rangeFrom: until ? addDays(until, 1) : today, rangeTo: until ? addDays(until, 1) : today, estimated: true };
+    delete ci.publishRule;
     ci.publish.presale = presale;
   }
 
