@@ -1,5 +1,5 @@
 // 威秀影城：列表頁取電影，再到每部電影介紹頁取全部影城場次（含直達訂票連結）
-import { fetchText, parseHTML, pool, abs, text, pageText, regionOf, cityOf } from '../util.mjs';
+import { fetchText, parseHTML, pool, abs, text, pageText, regionOf, cityOf, sleep } from '../util.mjs';
 
 export const chain = '威秀';
 export const site = 'https://www.vscinemas.com.tw/';
@@ -67,7 +67,9 @@ export async function scrape() {
 
   const shows = [];
   const cinemaNames = new Set();
-  await pool(now, 4, async (m) => {
+  // 放慢速度：短時間大量讀取會被威秀暫時拒絕
+  await pool(now, 2, async (m) => {
+    await sleep(400);
     const d = parseDetail(parseHTML(await fetchText(`${BASE}detail.aspx?id=${m.key}`)));
     const mv = movies.get(m.key);
     mv.runtime = d.runtime;
