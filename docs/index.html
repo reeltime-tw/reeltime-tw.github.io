@@ -128,6 +128,20 @@ main{padding:14px 0 24px;min-height:60vh}
 .cin-h a{text-decoration:none}
 .cin-h .sub{font-size:13px;color:var(--ink2)}
 .cin .star{margin:-6px -8px 0 0}
+.cin.fold .cin-h{align-items:center}
+.cin .tog{all:unset;flex:1;min-width:0;cursor:pointer;display:block}
+.cin .tog:focus-visible{outline:2px solid var(--red);outline-offset:4px;border-radius:6px}
+.cin .chev{width:20px;height:20px;color:var(--ink2);flex:0 0 auto;transition:transform .15s}
+.cin .chev svg{width:20px;height:20px}
+.cin.open .chev{transform:rotate(180deg)}
+.cin .peek{display:flex;gap:8px;align-items:baseline;margin-top:6px;font-size:14px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cin .peek b{color:var(--red);font-weight:600;flex:0 0 auto}
+.cin .peek span{font-family:'Barlow Condensed',system-ui,sans-serif;font-size:16px;letter-spacing:.3px;color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.cin .peek-f{font-size:12px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cin-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--ink2);margin:10px 2px 8px}
+.lnk{all:unset;cursor:pointer;color:var(--red);font-size:14px;font-weight:600;padding:6px 2px}
+.cin-more{display:inline-block;margin-top:8px;text-decoration:none}
+@media(prefers-reduced-motion:reduce){.cin .chev{transition:none}}
 .fg{margin-top:10px}
 .fg-l{font-size:12.5px;color:var(--ink2);margin-bottom:6px}
 .stubs{display:flex;flex-wrap:wrap;gap:8px}
@@ -206,6 +220,11 @@ main{padding:14px 0 24px;min-height:60vh}
 .sheet h2{margin:4px 0 12px;font-size:18px}
 .sheet h4{margin:18px 0 8px;font-size:14px;color:var(--ink2);font-weight:600}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
+.geo-btn{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:10px;align-items:center;width:100%;padding:12px 14px;margin:4px 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.geo-btn svg{width:22px;height:22px;color:var(--red);flex:0 0 auto}
+.geo-btn span{display:grid;gap:2px}.geo-btn b{font-size:15px}.geo-btn small{font-size:12px;color:var(--ink2)}
+.geo-btn[aria-pressed=true]{border-color:var(--red);background:var(--red-soft)}
+.geo-btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .sheet:focus{outline:none}
 .trange{display:flex;gap:10px}
 .trange label{flex:1;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
@@ -366,7 +385,7 @@ function posterImg(m,eager){
 const rateTag=m=>m.rating?`<span class="rt rt-${esc(m.rating)}" title="${esc(m.rating)}級">${esc(m.rating.replace('輔',''))}</span>`:'';
 
 /* ================= 狀態 ================= */
-const S={route:'now',id:null,date:todayS,city:store.get('city','全台'),from:'',to:'',kinds:new Set(),langs:new Set(),chains:new Set(),favs:new Set(store.get('favs',[])),showPast:false,q:'',cq:''};
+const S={route:'now',id:null,date:todayS,city:store.get('city','全台'),from:'',to:'',kinds:new Set(),langs:new Set(),chains:new Set(),favs:new Set(store.get('favs',[])),showPast:false,q:'',cq:'',open:new Set(),closed:new Set(),openFor:null};
 const $=s=>document.querySelector(s);
 const bar=$('#bar'), sub=$('#sub'), view=$('#view'), layer=$('#layer');
 // 時段：使用者自填「從 S.from 到 S.to」，留空代表不限；午夜場（0–3 點）算在當天最後
@@ -448,7 +467,7 @@ function pageNow(){
   for(const m of DB.movies){if(m.status==='soon'&&!m.presale)continue;const r=movieCountIn(cs,m,S.date);if(r.n)list.push([m,r])}
   list.sort((a,b)=>b[1].n-a[1].n);
   let html=demoBanner()+bad();
-  if(S.city==='全台'&&!store.get('askedCity',false))html+=`<div class="banner">${ICON.pin}<div class="main">選擇所在縣市，只看附近影城的場次。</div><button class="btn" data-act="loc">選擇</button></div>`;
+  if(S.city==='全台'&&!store.get('askedCity',false))html+=`<div class="banner">${ICON.pin}<div class="main">只看附近影城的場次？</div><button class="btn" data-act="geo">用目前位置</button><button class="btn" data-act="loc">選縣市</button></div>`;
   if(!list.length){
     const unpub=cs.length&&cs.every(c=>!published(c,S.date));
     const e=earliestPublish(cs);
@@ -544,11 +563,19 @@ function pageMovie(id){
     html+=unpub?`<div class="notice warn">${md(S.date)}的場次還沒公布${e?`。最快是 <b>${esc(e.c.name)}</b>，預計 <b>${md(e.n.slice(0,10))}${e.n.includes('T')?' '+e.n.slice(11):''}</b> 公布`:''}。</div>`
       :`<div class="empty"><b>${md(S.date)}${esc(S.city==='全台'?'':S.city)}沒有符合的場次</b>${pastN&&!S.showPast?`今天已開演 ${pastN} 場。`:'換個日期、縣市，或放寬篩選試試。'}${S.city!=='全台'?`<br><button class="btn" data-setcity="全台">改看全台</button>`:''}</div>`;
   }else{
+    // 預設收合：只有一間影城、或是常用影城時自動展開；其他由使用者點開
+    if(S.openFor!==m.id){S.openFor=m.id;S.open=new Set()}
+    const isOpen=c=>S.open.has(c.id)||(!S.closed.has(c.id)&&(blocks.length===1||isFav(c.id)));
+    const allOpen=blocks.every(b=>isOpen(b.c));
+    html+=`<div class="cin-tools"><span>${blocks.length} 間影城有場次，點影城看時間</span>${blocks.length>1?`<button class="lnk" data-act="${allOpen?'collapseall':'expandall'}">${allOpen?'全部收起':'全部展開'}</button>`:''}</div>`;
     let lastGroup='';
     for(const {c,show} of blocks){
       const g=isFav(c.id)?'常用影城':(S.city==='全台'?c._city:'');
       if(g&&g!==lastGroup){html+=`<div class="sec-h"><h2>${esc(g)}</h2></div>`;lastGroup=g}
-      html+=`<div class="cin"><div class="cin-h"><a class="main" href="#/cinema/${encodeURIComponent(c.id)}"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}</div></a><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button></div>${groupedTimes(show)}</div>`;
+      const op=isOpen(c);
+      const next=show.slice(0,4).map(x=>x.time).join('　');
+      const fmts=[...new Set(show.map(x=>x.format).filter(Boolean))];
+      html+=`<div class="cin fold${op?' open':''}"><div class="cin-h"><button class="main tog" data-toggle="${esc(c.id)}" aria-expanded="${op}"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}</div>${op?'':`<div class="peek"><b>${show.length} 場</b><span>${esc(next)}${show.length>4?'…':''}</span></div>${fmts.length?`<div class="peek-f">${fmts.slice(0,3).map(esc).join('・')}${fmts.length>3?'…':''}</div>`:''}`}</button><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button><span class="chev" aria-hidden="true">${ICON.down}</span></div>${op?groupedTimes(show)+`<a class="lnk cin-more" href="#/cinema/${encodeURIComponent(c.id)}">看這間影城的所有電影 ›</a>`:''}</div>`;
     }
   }
   if(pastN)html+=`<button class="past" data-act="past">${S.showPast?'隱藏已開演的場次':`顯示已開演的 ${pastN} 場`}</button>`;
@@ -603,12 +630,54 @@ function closeSheet(fromPop){
   if(!fromPop){ignorePop++;history.back()}
 }
 
+/* ---- 自動定位：用手機位置判斷所在縣市 ----
+ * cityMode：'auto'＝每次開啟依位置決定；'manual'＝使用者自己選的縣市，不會被定位蓋掉
+ * 位置只用來換算縣市：先問 BigDataCloud（免費、免金鑰的反查服務），失敗就找最近的縣市中心 */
+const CITY_CENTER={'台北市':[25.04,121.56],'新北市':[25.01,121.46],'基隆市':[25.13,121.74],'桃園市':[24.99,121.30],'新竹市':[24.80,120.97],'新竹縣':[24.83,121.01],'宜蘭縣':[24.75,121.75],'苗栗縣':[24.56,120.82],'台中市':[24.15,120.67],'彰化縣':[24.08,120.54],'南投縣':[23.91,120.68],'雲林縣':[23.71,120.43],'嘉義市':[23.48,120.45],'嘉義縣':[23.46,120.25],'台南市':[22.99,120.21],'高雄市':[22.63,120.30],'屏東縣':[22.67,120.49],'花蓮縣':[23.98,121.60],'台東縣':[22.76,121.14],'澎湖縣':[23.57,119.58],'金門縣':[24.43,118.32],'連江縣':[26.16,119.95]};
+const cityMode=()=>store.get('cityMode',store.get('askedCity',false)?'manual':'auto');
+function nearestCity(lat,lng){
+  const has=new Set(DB.cinemas.map(c=>c._city));let best=null,bd=1e9;
+  for(const [c,[a,b]] of Object.entries(CITY_CENTER)){if(!has.has(c))continue;const d=(a-lat)**2+((b-lng)*Math.cos(lat*Math.PI/180))**2;if(d<bd){bd=d;best=c}}
+  return best;
+}
+async function cityFromCoords(lat,lng){
+  const has=new Set(DB.cinemas.map(c=>c._city));
+  try{
+    const ac=new AbortController();setTimeout(()=>ac.abort(),5000);
+    const j=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=zh`,{signal:ac.signal}).then(r=>r.json());
+    const names=[j.principalSubdivision,j.city,...((j.localityInfo&&j.localityInfo.administrative)||[]).map(a=>a.name)].filter(Boolean).map(x=>String(x).replace(/臺/g,'台'));
+    const hit=names.map(n=>CITY_ORDER.find(c=>n.includes(c))).find(Boolean);
+    if(hit&&has.has(hit))return hit;
+    if(hit&&!has.has(hit))return nearestCity(lat,lng); // 所在縣市沒有影城 → 最近有影城的縣市
+  }catch(e){}
+  return nearestCity(lat,lng);
+}
+let geoBusy=false;
+function locateMe(fromUser){
+  if(geoBusy)return;
+  if(!('geolocation' in navigator)){if(fromUser)toast('這個瀏覽器不支援定位，請手動選擇縣市');return}
+  geoBusy=true;if(fromUser){if(sheetOpen)closeSheet();toast('正在取得你的位置…')}
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const city=await cityFromCoords(pos.coords.latitude,pos.coords.longitude);geoBusy=false;
+    if(!city){if(fromUser)toast('附近找不到有場次的影城');return}
+    store.set('cityMode','auto');store.set('askedCity',true);store.set('geoDenied',false);
+    const changed=S.city!==city;S.city=city;store.set('city',city);
+    if(changed||fromUser){render(true);toast(`已依目前位置顯示${city}的影城`)}
+  },err=>{
+    geoBusy=false;
+    if(err.code===1){store.set('geoDenied',true);if(fromUser)toast('沒有定位權限。可到手機「設定 › Safari › 位置」允許，或手動選擇縣市')}
+    else if(fromUser)toast('暫時取得不到位置，請手動選擇縣市');
+  },{enableHighAccuracy:false,timeout:10000,maximumAge:30*60*1000});
+}
+
 function locSheet(){
   store.set('askedCity',true);
   const n=city=>DB.cinemas.filter(c=>c._city===city).length;
   const byR=new Map();for(const c of DB.cinemas){const r=c.region||'其他';if(!byR.has(r))byR.set(r,new Set());byR.get(r).add(c._city)}
   const regs=[...byR].sort((a,b)=>REGION_ORDER.indexOf(a[0])-REGION_ORDER.indexOf(b[0]));
-  openSheet(`<h2>選擇縣市</h2><div class="opts"><button class="chip" data-setcity="全台" aria-pressed="${S.city==='全台'}">全台（${DB.cinemas.length} 間影城）</button></div>
+  const auto=cityMode()==='auto'&&!store.get('geoDenied',false);
+  openSheet(`<h2>選擇縣市</h2><button class="geo-btn" data-act="geo" aria-pressed="${auto}">${ICON.pin}<span><b>使用目前位置</b><small>${auto?`開啟 App 時自動依位置切換（目前：${esc(S.city)}）`:'自動判斷你所在的縣市'}</small></span></button>
+  <div class="opts"><button class="chip" data-setcity="全台" aria-pressed="${S.city==='全台'&&!auto}">全台（${DB.cinemas.length} 間影城）</button></div>
   ${regs.map(([r,set])=>`<h4>${esc(r)}</h4><div class="opts">${[...set].sort((a,b)=>CITY_ORDER.indexOf(a)-CITY_ORDER.indexOf(b)).map(city=>`<button class="chip" data-setcity="${esc(city)}" aria-pressed="${S.city===city}">${esc(city)}（${n(city)}）</button>`).join('')}</div>`).join('')}
   <div class="note">會記住你的選擇，下次打開直接顯示。</div>`,'選擇縣市');
 }
@@ -707,8 +776,9 @@ document.addEventListener('click',e=>{
   if(d.lang){S.langs.has(d.lang)?S.langs.delete(d.lang):S.langs.add(d.lang);return rerender()}
   if(d.chain){S.chains.has(d.chain)?S.chains.delete(d.chain):S.chains.add(d.chain);return rerender()}
   if(d.unset){if(d.unset==='period'){S.from='';S.to=''}if(d.unset==='kind')S.kinds.delete(d.v);if(d.unset==='lang')S.langs.delete(d.v);if(d.unset==='chain')S.chains.delete(d.v);return render(true)}
-  if(d.setcity){S.city=d.setcity;store.set('city',S.city);store.set('askedCity',true);if(sheetOpen)closeSheet();return render()}
+  if(d.setcity){S.city=d.setcity;store.set('city',S.city);store.set('askedCity',true);store.set('cityMode','manual');if(sheetOpen)closeSheet();return render()}
   if(d.fav){toggleFav(d.fav);return render(true)}
+  if(d.toggle){const id=d.toggle,el=t.closest('.cin'),op=el&&el.classList.contains('open');if(op){S.open.delete(id);S.closed.add(id)}else{S.open.add(id);S.closed.delete(id)}render(true);const n=document.querySelector(`[data-toggle="${CSS.escape(id)}"]`);n&&n.focus({preventScroll:true});return}
   if(d.show){return ticketSheet(+d.show)}
   switch(d.act){
     case 'back':return navCount>0?history.back():(location.hash=S.route==='cinema'?'#/cinemas':'#/');
@@ -718,6 +788,9 @@ document.addEventListener('click',e=>{
     case 'clear':S.from='';S.to='';S.kinds.clear();S.langs.clear();S.chains.clear();render(true);if(sheetOpen)filterSheetRefresh();return;
     case 'close':return closeSheet();
     case 'past':S.showPast=!S.showPast;return render(true);
+    case 'expandall':document.querySelectorAll('[data-toggle]').forEach(b=>{S.open.add(b.dataset.toggle);S.closed.delete(b.dataset.toggle)});return render(true);
+    case 'collapseall':document.querySelectorAll('[data-toggle]').forEach(b=>{S.open.delete(b.dataset.toggle);S.closed.add(b.dataset.toggle)});return render(true);
+    case 'geo':return locateMe(true);
     case 'syn':{const p=$('#syn');p.classList.toggle('open');t.textContent=p.classList.contains('open')?'收合簡介':'展開簡介';return}
     case 'about':return aboutSheet();
     case 'reload':if(sheetOpen)closeSheet();return boot(true);
@@ -747,6 +820,8 @@ async function boot(force){
     LOAD_ERR='';setData(j);if(force)toast('已載入最新場次');
   }catch(e){LOAD_ERR=e.message;setData(demoData())}
   render();
+  // 自動定位：沒手動選過縣市、也沒拒絕過定位權限時才做
+  if(!DB.demo&&cityMode()==='auto'&&!store.get('geoDenied',false))locateMe(false);
 }
 boot();
 </script>
