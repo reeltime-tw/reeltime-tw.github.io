@@ -1,0 +1,56 @@
+name: r5py-環境探索（開發用，非正式流程）
+on:
+  workflow_dispatch: {}
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出 repo 內容
+        uses: actions/checkout@v4
+
+      - name: 安裝 Java（r5py 依賴的 R5 引擎需要）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: 安裝 Python 套件（r5py 與其依賴）
+        run: |
+          python3 -m pip install --break-system-packages --upgrade pip
+          python3 -m pip install --break-system-packages r5py geopandas shapely pandas
+          python3 -c "import r5py; print('r5py version:', r5py.__version__)"
+
+      - name: 下載台灣 OSM 資料並裁切出台北小範圍
+        run: |
+          curl -L --max-time 300 --retry 5 --retry-delay 5 --retry-all-errors \
+            -o taiwan.osm.pbf "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool zip
+          osmium extract -b 121.45,24.95,121.65,25.10 taiwan.osm.pbf -o taipei-small.osm.pbf --overwrite
+          ls -la taipei-small.osm.pbf
+
+      - name: 產生捷運 GTFS（TRTC）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_metro.py TRTC
+          python3 tools/travel/validate_gtfs.py gtfs_out/metro
+
+      - name: 產生公車 GTFS（3 間試算影城方圓 2 公里）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_bus.py
+          python3 tools/travel/validate_gtfs.py gtfs_out/bus
+
+      - name: 把 GTFS 資料夾壓成 zip（r5py 吃 zip）
+        run: |
+          (cd gtfs_out/metro && zip -q -r ../metro.zip .)
+          (cd gtfs_out/bus && zip -q -r ../bus.zip .)
+          ls -la gtfs_out/*.zip
+
+      - name: 跑 r5py 算時間矩陣（大眾運輸＋步行，5 個取樣起點 → 3 間試算影城）
+        run: |
+          python3 tools/travel/r5/build_matrix.py taipei-small.osm.pbf gtfs_out/metro.zip gtfs_out/bus.zip
