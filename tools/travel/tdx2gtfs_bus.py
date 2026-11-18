@@ -34,9 +34,11 @@ from tdx_client import get_json  # noqa: E402
 ROUTE_TYPE_BUS = 3
 AGENCY_ID = "TDX_BUS"
 AGENCY_TZ = "Asia/Taipei"
-AVG_SPEED_KMH = 23.0  # 市區公車含停靠的平均速度；原本 18 經 Google 地圖驗證後
+AVG_SPEED_KMH = 25.0  # 市區公車含停靠的平均速度；原本 18 經 Google 地圖驗證後
 # 發現整體大眾運輸時間偏慢約 17-37%（2026-11-18，4 個樣本），懷疑是這個估計值
-# 偏保守，調高到 23 做第二輪驗證（見 plans/travel-time.md「驗證進度」）
+# 偏保守。調到 23 之後再驗證：4 個樣本誤差從 median~7/max~15 分鐘降到
+# median~5.5/max~6 分鐘，大幅改善但 median 還差一點點，再往上調到 25 看
+# 能不能壓進門檻（median ≤5）。（見 plans/travel-time.md「驗證進度」）
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
