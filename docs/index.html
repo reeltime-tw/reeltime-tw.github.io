@@ -232,9 +232,13 @@ main{padding:14px 0 24px;min-height:60vh}
 .lv-note{font-size:14px;line-height:1.55;margin:8px 0}
 .lv-row{display:flex;align-items:center;gap:10px;margin-top:10px}.lv-row>span{font-size:12px;color:var(--ink2);flex:0 0 3.2em}
 .chip.sm{height:30px;padding:0 10px;font-size:13px}
-.maps{display:flex;gap:8px;margin-top:12px}.maps .btn{flex:1;height:40px;font-size:14px}.maps svg{width:16px;height:16px}
+.maps{display:flex;gap:8px;margin-top:12px}.maps .btn{flex:1;height:48px;font-size:14px;line-height:1.15}.maps .btn span{display:grid;text-align:left}.maps small{font-size:11px;font-weight:500;color:var(--ink2)}.maps svg{width:16px;height:16px}
 .leave .btn svg{width:18px;height:18px;flex:0 0 auto}
 .lv-row .opts{gap:6px}
+.lv-sel{position:relative;display:inline-flex;align-items:center}
+.lv-sel select{appearance:none;-webkit-appearance:none;height:34px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:17px;background:var(--surface);font:inherit;font-size:14px;color:var(--ink)}
+.lv-sel svg{position:absolute;right:9px;width:16px;height:16px;pointer-events:none;color:var(--ink2)}
+.lv-hint{font-size:12px;color:var(--ink3)!important;flex:1 1 auto!important}
 .lv-tiny{font-size:11.5px;color:var(--ink3);margin-top:6px;line-height:1.5}
 .btn.block{width:100%}
 .dist{color:var(--ink)}
@@ -676,7 +680,8 @@ const cDist=c=>S.here&&cGeo(c)?distKm([S.here.lat,S.here.lng],cGeo(c)):null;
 const kmTxt=d=>d==null?'':d<1?Math.round(d*1000/50)*50+' 公尺':d<10?d.toFixed(1)+' 公里':Math.round(d)+' 公里';
 /* 交通時間推估（直線距離換算，僅供參考；精確時間請用地圖 App）
  * 繞路係數：一般道路約為直線的 1.3–1.4 倍 */
-const MODES={transit:{label:'大眾運輸',g:'transit',a:'r'},scooter:{label:'機車',g:'two-wheeler',a:'d'},car:{label:'開車',g:'driving',a:'d'},walk:{label:'走路',g:'walking',a:'w'}};
+// gd：Google 地圖網址 data 參數的交通方式代碼（3e0 開車、3e2 走路、3e3 大眾運輸）
+const MODES={transit:{label:'大眾運輸',g:'transit',gd:3,a:'r'},scooter:{label:'機車',g:'two-wheeler',gd:0,a:'d'},car:{label:'開車',g:'driving',gd:0,a:'d'},walk:{label:'走路',g:'walking',gd:2,a:'w'}};
 function travelMin(km,mode){
   const road=km*(mode==='walk'?1.25:1.35);
   let m;
@@ -778,12 +783,20 @@ function ticketSheet(i){
   if(!S.here&&store.get('geoOK',false))getHere(false).then(()=>refreshLeave());
 }
 function refreshLeave(){const el=document.getElementById('leave');if(el&&S.leaveFor!=null){const s=DB.shows[S.leaveFor];el.innerHTML=leaveHTML(s,DB.byC[s.cinema])}}
-function mapLinks(c,mode){
+/* 地圖按鈕
+ * Google：用 /maps/dir//{影城}/data=!4m6!4m5!2m3!6e1!7e2!8j{時間}!3e{方式}，起點留空＝手機目前位置，
+ *   6e1＝「抵達時間」模式，8j＝抵達時間（當地時間直接當 UTC 的秒數）。2026-11-18 在 Google 地圖網頁版實測：
+ *   會顯示「抵達時間 11月19日 9:15」並列出準時抵達的捷運路線。這是 Google 網址的內部格式，非官方文件，日後可能失效。
+ * Apple：官方網址不支援抵達時間，只能帶目的地與交通方式。 */
+function mapLinks(c,mode,arrive){
   const g=cGeo(c);
-  const dest=c.addr&&/[路街道段]/.test(c.addr)?c.name+' '+c.addr:(g?g[0]+','+g[1]:c.name);
-  const gm=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=${MODES[mode].g}`;
+  const dest=c.addr&&/[路街道段]/.test(c.addr)?c.name+' '+c.addr:(c.name||(g?g[0]+','+g[1]:''));
+  const t=arrive?Math.round(Date.UTC(arrive.getFullYear(),arrive.getMonth(),arrive.getDate(),arrive.getHours(),arrive.getMinutes())/1000):0;
+  const gm=t?`https://www.google.com/maps/dir//${encodeURIComponent(dest)}/data=!4m6!4m5!2m3!6e1!7e2!8j${t}!3e${MODES[mode].gd}?hl=zh-TW`
+           :`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=${MODES[mode].g}`;
   const am=`https://maps.apple.com/?daddr=${encodeURIComponent(g?g[0]+','+g[1]:dest)}&q=${encodeURIComponent(c.name)}&dirflg=${MODES[mode].a}`;
-  return `<div class="maps"><a class="btn" href="${esc(gm)}" target="_blank" rel="noopener noreferrer">${ICON.pin}Google 地圖</a><a class="btn" href="${esc(am)}" target="_blank" rel="noopener noreferrer">${ICON.pin}Apple 地圖</a></div>`;
+  const hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+  return `<div class="maps"><a class="btn" href="${esc(gm)}" target="_blank" rel="noopener noreferrer">${ICON.pin}<span>Google 地圖${arrive?`<small>${hm(arrive)} 抵達</small>`:''}</span></a><a class="btn" href="${esc(am)}" target="_blank" rel="noopener noreferrer">${ICON.pin}<span>Apple 地圖${arrive?'<small>需自設抵達時間</small>':''}</span></a></div>`;
 }
 function leaveHTML(s,c){
   const mode=store.get('travelMode','transit'), buf=store.get('travelBuf',15);
@@ -791,7 +804,9 @@ function leaveHTML(s,c){
   const arrive=new Date(start.getTime()-buf*60000);
   const hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
   const modes=Object.entries(MODES).map(([k,v])=>`<button class="chip sm" data-mode="${k}" aria-pressed="${k===mode}">${v.label}</button>`).join('');
-  const bufs=[0,10,15,20,30].map(b=>`<button class="chip sm" data-buf="${b}" aria-pressed="${b===buf}">${b?b+' 分':'不用'}</button>`).join('');
+  // 提早到：用下拉選單（iPhone 會跳出滾輪），0–120 分每 5 分一格；不自動聚焦
+  const opts=[];for(let b=0;b<=120;b+=5)opts.push(b);if(!opts.includes(buf))opts.push(buf),opts.sort((x,y)=>x-y);
+  const bufSel=`<label class="lv-sel"><select id="lvBuf" aria-label="提早幾分鐘到">${opts.map(b=>`<option value="${b}"${b===buf?' selected':''}>${b?b+' 分鐘':'不用提早'}</option>`).join('')}</select>${ICON.down}</label>`;
   const g=cGeo(c);
   let main;
   if(!g) main=`<p class="lv-note">這間影城的位置還沒建立，請直接用地圖 App 規劃，記得在 <b>${hm(arrive)}</b> 前抵達。</p>`;
@@ -807,8 +822,8 @@ function leaveHTML(s,c){
   }
   return `<div class="leave"><div class="lv-h">${ICON.clock||''}<b>出發時間</b><span>推估</span></div>${main}
   <div class="lv-row"><span>交通</span><div class="opts">${modes}</div></div>
-  <div class="lv-row"><span>提早到</span><div class="opts">${bufs}</div></div>
-  ${mapLinks(c,mode)}<div class="lv-tiny">推估依直線距離換算，未計入塞車與班次；地圖 App 會算出實際路線與時間。</div></div>`;
+  <div class="lv-row"><span>提早到</span>${bufSel}<span class="lv-hint">取票、買爆米花的時間</span></div>
+  ${mapLinks(c,mode,arrive)}<div class="lv-tiny">上面是依直線距離的推估，沒算塞車與班次。按「Google 地圖」會直接用「${pad(arrive.getHours())}:${pad(arrive.getMinutes())} 抵達」查實際路線，看最晚哪一班車。</div></div>`;
 }
 function privacySheet(){
   const auto=cityMode()==='auto'&&store.get('geoOK',false);
@@ -890,7 +905,6 @@ document.addEventListener('click',e=>{
   if(d.date){S.date=d.date;S.showPast=false;return render(true)}
   if(d.kind){S.kinds.has(d.kind)?S.kinds.delete(d.kind):S.kinds.add(d.kind);return rerender()}
   if(d.mode){store.set('travelMode',d.mode);return refreshLeave()}
-  if(d.buf!=null&&t.matches('[data-buf]')){store.set('travelBuf',+d.buf);return refreshLeave()}
   if(d.lang){S.langs.has(d.lang)?S.langs.delete(d.lang):S.langs.add(d.lang);return rerender()}
   if(d.chain){S.chains.has(d.chain)?S.chains.delete(d.chain):S.chains.add(d.chain);return rerender()}
   if(d.unset){if(d.unset==='period'){S.from='';S.to=''}if(d.unset==='kind')S.kinds.delete(d.v);if(d.unset==='lang')S.langs.delete(d.v);if(d.unset==='chain')S.chains.delete(d.v);return render(true)}
@@ -923,6 +937,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='cq'){S.cq=e.target.value;renderCinemaList()}
 });
 document.addEventListener('change',e=>{
+  if(e.target.id==='lvBuf'){store.set('travelBuf',+e.target.value);refreshLeave();return}
   if(e.target.id==='tFrom'||e.target.id==='tTo'){S[e.target.id==='tFrom'?'from':'to']=e.target.value||'';render(true);return}if(e.target.id==='fileIn'&&e.target.files[0]){const r=new FileReader();r.onload=()=>loadJSON(r.result);r.readAsText(e.target.files[0])}});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheetOpen)closeSheet();

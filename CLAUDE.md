@@ -148,6 +148,7 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 - **出發時間（最晚幾點出門）**：使用者要求「先做出來、試用後再決定放哪」，目前放在**確認場次面板**（`ticketSheet` → `leaveHTML()`），電影頁影城卡片顯示距離並依距離排序（常用影城仍最前）。
   - 影城座標：`docs/cinema-geo.json`（102/111 間；由 `tools/cinema-geo-src.json` 產生，每筆標來源 osm/official/addr/approx，**approx 的 17 間誤差可能數百公尺，有空可校正**）。已用縣市邊界驗證全部落在正確縣市。秀泰官方 latLng 有錯（土城標到新竹、麗寶偏移），不可盲信。沒座標的 9 間小影院只顯示「請用地圖 App」。
   - 推估：`travelMin()` 直線距離 × 繞路係數 1.35（走路 1.25），大眾運輸 18km/h＋12 分、機車 22km/h＋5 分、開車 22km/h＋10 分（>15km 提高速度），顯示 0.85–1.25 倍區間，出門時間用上限算；提早分鐘 `twc.travelBuf`（預設 15）、交通方式 `twc.travelMode`。午夜場（<04:00）算隔天。
-  - 地圖按鈕：Google `maps/dir/?api=1&destination=&travelmode=`、Apple `maps.apple.com/?daddr=&dirflg=`，只傳**影城**位置。Google/Apple URL 都不支援「抵達時間」參數，所以 App 顯示抵達時間讓使用者自己設定。
+  - 地圖按鈕（只傳**影城**位置）：**Google 帶抵達時間**：`/maps/dir//{影城名+地址}/data=!4m6!4m5!2m3!6e1!7e2!8j{秒}!3e{0開車|2走路|3大眾運輸}`，起點留空＝手機目前位置，`6e1`＝抵達時間模式，`8j`＝抵達時間「當地時間當 UTC」的秒數（`Date.UTC(本地年月日時分)/1000`）。2026-11-18 在 Google 地圖網頁版實測顯示「抵達時間 11月19日 9:15」與準時抵達的捷運班次；**非官方格式，日後可能失效**；iPhone 的 Google 地圖 App 是否吃這個參數待使用者實測。官方 `?api=1` 不支援抵達時間（舊參數 `ttype=arr` 實測無效，會被當成出發時間）。Apple 地圖網址不支援抵達時間。
+  - 「提早到」改為 `<select id=lvBuf>`（0–120 分每 5 分，iPhone 會跳滾輪），在 change 事件更新，不自動聚焦。
   - 使用者位置只存在記憶體 `S.here`（10 分鐘內重用），不寫入 localStorage。`getHere(prompt)`：未同意過時只在按按鈕後詢問。
   - `test/privacy.py` 已加入出發時間流程的對外連線檢查。
