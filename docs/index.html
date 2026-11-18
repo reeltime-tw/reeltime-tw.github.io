@@ -674,6 +674,40 @@ function nearestCity(lat,lng){
 let COUNTIES=null, CGEO=null;
 async function loadCinemaGeo(){if(!CGEO){try{CGEO=(await fetch('cinema-geo.json').then(r=>r.json())).cinemas||{}}catch(e){CGEO={}}}return CGEO}
 const cGeo=c=>CGEO&&CGEO[c.id];
+/* ---- 精確路程時間查表（docs/travel/{cinemaId}.bin） ----
+ * 這份查表是伺服器事先用真實路網（OSRM）與真實班表（TDX）算好的，App 只用使用者
+ * 在手機上的目前位置換算成「格子編號」去查表，位置本身不會離開手機（跟縣市定位
+ * 用的是同一組隱私承諾）。網格公式必須跟 tools/travel/grid.py 逐字一致，見
+ * test/travel_grid.mjs。只有少數影城（目前是 3 間試算影城）有這份資料，其他
+ * 影城查不到時會退回 travelMin() 的直線距離粗估。 */
+const TLAT0=21.8, TLON0=119.3, TCELL_M=500, TREF_LAT=23.7;
+const TD_LAT=TCELL_M/111320.0, TD_LON=TCELL_M/(111320.0*Math.cos(TREF_LAT*Math.PI/180));
+function travelCellOf(lat,lon){return [Math.floor((lat-TLAT0)/TD_LAT), Math.floor((lon-TLON0)/TD_LON)]}
+const TRAVELBIN={}; // cinemaId -> {header,bytes} | null（null＝查過但沒有這份資料，不用重試）
+async function loadTravelBin(cinemaId){
+  if(cinemaId in TRAVELBIN)return TRAVELBIN[cinemaId];
+  try{
+    const buf=await fetch('travel/'+encodeURIComponent(cinemaId)+'.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()});
+    const dv=new DataView(buf);
+    const n=dv.getUint32(0,true);
+    const header=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,4,n)));
+    const bytes=new Uint8Array(buf,4+n);
+    TRAVELBIN[cinemaId]={header,bytes};
+  }catch(e){TRAVELBIN[cinemaId]=null}
+  return TRAVELBIN[cinemaId];
+}
+/* 回傳查到的分鐘數（已套過校正倍率），查不到（範圍外、255、沒有這份資料）回 null，
+ * 由呼叫端退回粗估。mode 對應 MODES 的 key：transit/scooter/car/walk。 */
+function travelLookup(cinemaId,lat,lon,mode){
+  const d=TRAVELBIN[cinemaId];if(!d)return null;
+  const h=d.header;
+  const [row,col]=travelCellOf(lat,lon);
+  const r=row-h.row0, c=col-h.col0;
+  if(r<0||c<0||r>=h.height||c>=h.width)return null;
+  const li=h.layers.indexOf(mode);if(li<0)return null;
+  const v=d.bytes[li*h.width*h.height + r*h.width + c];
+  return v===255?null:v;
+}
 // 使用者位置只放在記憶體（S.here），關掉 App 就消失；不寫進手機儲存、不上傳
 function distKm(a,b){const R=6371,t=x=>x*Math.PI/180;const dLa=t(b[0]-a[0]),dLo=t(b[1]-a[1]);const h=Math.sin(dLa/2)**2+Math.cos(t(a[0]))*Math.cos(t(b[0]))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 const cDist=c=>S.here&&cGeo(c)?distKm([S.here.lat,S.here.lng],cGeo(c)):null;
@@ -780,6 +814,7 @@ function ticketSheet(i){
   <div class="note">${direct?'會直接打開這個場次的訂票頁。':viaAt?'這間影城沒有線上訂票網站，可到現場購票或來電詢問。':`${esc(who)}官網沒有單一場次的連結，打開後請再選一次 ${md(s.date)} ${esc(s.time)} 這場。`}${other?'場次資料來自開眼電影網。':''}票價、座位以官網為準。</div>
   <div class="sheet-foot"><button class="btn" data-act="close">返回場次</button></div>`,'訂票');
   S.leaveFor=i;
+  if(!(c.id in TRAVELBIN))loadTravelBin(c.id).then(()=>{if(S.leaveFor===i)refreshLeave()});
   if(!S.here&&store.get('geoOK',false))getHere(false).then(()=>refreshLeave());
 }
 function refreshLeave(){const el=document.getElementById('leave');if(el&&S.leaveFor!=null){const s=DB.shows[S.leaveFor];el.innerHTML=leaveHTML(s,DB.byC[s.cinema])}}
@@ -808,22 +843,30 @@ function leaveHTML(s,c){
   const opts=[];for(let b=0;b<=120;b+=5)opts.push(b);if(!opts.includes(buf))opts.push(buf),opts.sort((x,y)=>x-y);
   const bufSel=`<label class="lv-sel"><select id="lvBuf" aria-label="提早幾分鐘到">${opts.map(b=>`<option value="${b}"${b===buf?' selected':''}>${b?b+' 分鐘':'不用提早'}</option>`).join('')}</select>${ICON.down}</label>`;
   const g=cGeo(c);
-  let main;
+  let main, exact=false;
   if(!g) main=`<p class="lv-note">這間影城的位置還沒建立，請直接用地圖 App 規劃，記得在 <b>${hm(arrive)}</b> 前抵達。</p>`;
   else if(!S.here){
     const denied=store.get('geoDenied',false);
     main=`<p class="lv-note">要在 ${esc(s.time)} 開演前 ${buf} 分鐘（<b>${hm(arrive)}</b>）抵達。${denied?'定位權限已關閉，可到手機設定開啟，或直接用地圖 App 規劃。':''}</p>${denied?'':`<button class="btn block" data-act="leavegeo">${ICON.pin}用目前位置算出發時間</button><div class="lv-tiny">位置只在手機上計算距離，不上傳、不儲存。</div>`}`;
   }else{
-    const km=distKm([S.here.lat,S.here.lng],g), mins=travelMin(km,mode);
-    const hi=Math.round(mins*1.25), lo=Math.round(mins*0.85);
+    const km=distKm([S.here.lat,S.here.lng],g);
+    const precise=travelLookup(c.id,S.here.lat,S.here.lng,mode);
+    let mins,hi,lo;
+    if(precise!=null){
+      exact=true; mins=precise;
+      hi=Math.round(mins*1.1)+3; lo=Math.max(1,Math.round(mins*0.9)); // 含起點不在格子中心、步行到站的誤差緩衝
+    }else{
+      mins=travelMin(km,mode);
+      hi=Math.round(mins*1.25); lo=Math.round(mins*0.85);
+    }
     const leave=new Date(arrive.getTime()-hi*60000), left=Math.round((leave-Date.now())/60000);
     const lt=left<0?`<span class="lv-late">現在出發可能會遲到</span>`:left<60?`還有 ${left} 分鐘`:left<24*60?`還有 ${Math.floor(left/60)} 小時 ${left%60} 分`:'';
     main=`<div class="lv-big"><span>最晚</span><b>${hm(leave)}</b><span>出門</span></div><div class="lv-sub">${lt}${lt?'・':''}距離約 ${kmTxt(km)}・${MODES[mode].label}約 ${lo}–${hi} 分鐘・${hm(arrive)} 抵達</div>`;
   }
-  return `<div class="leave"><div class="lv-h">${ICON.clock||''}<b>出發時間</b><span>推估</span></div>${main}
+  return `<div class="leave"><div class="lv-h">${ICON.clock||''}<b>出發時間</b><span>${exact?'已算路網與班表':'推估'}</span></div>${main}
   <div class="lv-row"><span>交通</span><div class="opts">${modes}</div></div>
   <div class="lv-row"><span>提早到</span>${bufSel}<span class="lv-hint">取票、買爆米花的時間</span></div>
-  ${mapLinks(c,mode,arrive)}<div class="lv-tiny">上面是依直線距離的推估，沒算塞車與班次。按「Google 地圖」會直接用「${pad(arrive.getHours())}:${pad(arrive.getMinutes())} 抵達」查實際路線，看最晚哪一班車。</div></div>`;
+  ${mapLinks(c,mode,arrive)}<div class="lv-tiny">${exact?'已依這間影城附近的真實道路與公開班表試算，仍抓了一點緩衝時間；要看即時路況請按「Google 地圖」。':'上面是依直線距離的粗估，沒算塞車與班次。按「Google 地圖」會直接用「'+pad(arrive.getHours())+':'+pad(arrive.getMinutes())+' 抵達」查實際路線，看最晚哪一班車。'}</div></div>`;
 }
 function privacySheet(){
   const auto=cityMode()==='auto'&&store.get('geoOK',false);
@@ -833,6 +876,7 @@ function privacySheet(){
   <li>只有你按「使用目前位置」時，手機才會問你要不要分享位置。</li>
   <li>位置<b>只在你的手機上</b>用來判斷你在哪個縣市（和 App 內建的縣市邊界比對），<b>不會傳到任何伺服器</b>。</li>
   <li>位置也用來在手機上計算到影城的距離、推估最晚出門時間。經緯度只暫存在這次打開的畫面裡，關掉就消失，<b>不會儲存</b>；手機裡只記下縣市名稱（例如「台北市」）。</li>
+  <li>部分影城（目前是試算中的 3 間）有事先算好的「路程時間表」：手機只會下載那間<b>影城</b>的時間表（網址只有影城 ID，跟打開影城頁一樣），再自己把你的位置換算成表格上的格子去查，<b>你的位置本身不會送出去</b>。這份表是伺服器先用公開的道路和班表資料算好的，不是即時查詢。</li>
   <li>按「Google 地圖」「Apple 地圖」時，只會把<b>影城</b>位置交給地圖 App，你的位置由地圖 App 自己取得，適用它們的隱私政策。</li>
   <li>只用低精度定位，約到街區等級，足夠判斷縣市就好。</li>
   </ul>

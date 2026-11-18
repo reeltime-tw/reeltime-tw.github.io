@@ -49,6 +49,13 @@ with sync_playwright() as pw:
         check(not ext, '沒有對外連線' + ('' if not ext else '：' + ', '.join(ext[:3])))
         coord = [u for u in reqs if str(lat) in u or str(lng) in u or f'{lat:.2f}' in u and f'{lng:.2f}' in u]
         check(not coord, '沒有任何請求帶著經緯度')
+        # 路程時間查表（docs/travel/{cinemaId}.bin）：只能是「/travel/影城ID.bin」，不能帶查詢參數、
+        # 座標或格子編號（row/col）——這份表本身是網址裡唯一可能含數字的請求，要特別檢查
+        travel_reqs = [u for u in reqs if '/travel/' in u]
+        bad_travel = [u for u in travel_reqs if '?' in u or not u.rsplit('/travel/', 1)[-1].endswith('.bin')
+                      or 'row' in u.lower() or 'col' in u.lower() or 'cell' in u.lower()]
+        check(not bad_travel, '路程時間查表只會請求 /travel/{影城ID}.bin，沒有座標或格子參數' +
+              ('' if not bad_travel else '：' + ', '.join(bad_travel[:3])))
         # 用瀏覽器的「安全政策攔截」事件判斷，而不是看連線失敗（沒網路時連線本來就會失敗）
         blocked = pg.evaluate("""new Promise(res=>{let hit=false;
           document.addEventListener('securitypolicyviolation',e=>{if(String(e.blockedURI).includes('example.com'))hit=true},{once:true});
