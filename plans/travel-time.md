@@ -108,7 +108,7 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 3. ~~寫網格程式（Python ＋ JS）與一致性測試~~ ✅ 已完成：`tools/travel/grid.py`、`tools/travel/grid.mjs`、`test/travel_grid.mjs`（1000 點隨機驗證全部一致）。
 4. **捷運 GTFS 轉換：已完成並通過真實資料驗證**（見下「捷運 GTFS 轉換 — 完成狀態」）。
 5. ~~公車 GTFS 轉換~~ ✅ 已完成（見下「公車 GTFS 轉換 — 完成狀態」）。台鐵尚未轉換（3 間試算影城都不緊鄰台鐵站，優先度較低，先跳過）。
-5b. ⏳ **下一步（尚未開始）**：寫 r5py 計算程式（吃 metro+bus 的 GTFS）與 OSRM 計算程式（含 `scooter.lua`），在 Actions 上對 3 間試算影城算出時間矩陣。這一步需要在 Actions 上裝 Java（r5py 依賴 R5 引擎）與 Docker 跑 OSRM，比之前的資料抓取複雜很多，預期要花更多輪除錯。
+5b. **OSRM（開車／機車／步行）：已驗證可行（見下「OSRM 路網計算 — 完成狀態」）**。r5py（大眾運輸＋步行矩陣）尚未開始，接下來進行。
 6. 驗證比對 Google 地圖，校正塞車係數；不合格就回第 4–5 步。
 7. App 端查表、退回粗估、隱私面板文字、測試。
 8. 校正 17 間 approx 座標。
@@ -129,6 +129,14 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 - **已知效率問題（之後可優化，不影響正確性）**：目前「保留」一條路線後會把它**整條**（不管多遠）的站點都收進 `stops.txt`，不是只收範圍附近的站，所以 `stops.txt` 膨脹到 26527 筆。之後若要擴大到全台，應該改成只保留範圍內＋前後各 1-2 站（避免在範圍邊界就斷頭），不是整條路線全收。
 - 站間時間用「相鄰站點座標直線距離 × 1.3 繞路係數 ÷ 18 km/h」估算（因為 TDX 沒有公車站間運行時間 API）。這是近似值，之後驗證階段要特別注意公車路段的誤差可能比捷運大。
 - `tools/travel/validate_gtfs.py`：取代原本 `validate_gtfs_metro.py`（該檔案現在只是轉呼叫，保留相容性）。
+
+## OSRM 路網計算 — 完成狀態（2026-11-18）
+
+- **先確認真實 Lua profile API，再動手寫，避免猜錯**：一開始曾猜測可以用 `require('car')` 覆寫 `.setup`/`.process_way` 等欄位（像一般 Lua 模組回傳表可覆寫），但這份猜測在測試前就被捨棄——改用 `.github/workflows/osrm-explore.yml` 直接進 `osrm/osrm-backend` 官方映像的 `/opt/car.lua` 看真正內容，發現 OSRM v5（`api_version = 4`）用的是**全域函式**（`function setup()`、`function process_node()`、`function process_way()`、`function process_turn()`），檔案最後 `return { setup=setup, process_way=process_way, ... }` 只是把這些全域函式包成表回傳，不是「可覆寫欄位的模組」。確認後才動手寫 `tools/travel/osrm/scooter.lua`：直接複製整份 `/opt/car.lua`，只改 `speeds.highway`（移除 `motorway`/`motorway_link`/`trunk`/`trunk_link`，台灣法規機車不能騎）與車輛體積/重量/地圖比對速限（改成機車規格）。
+- **流程驗證通過**：`.github/workflows/osrm-explore.yml` 下載台灣全島 OSM（Geofabrik，約 300MB，加了 `--retry` 處理 GitHub runner 端偶發的連線中斷）→ `osmium extract` 裁切出台北小範圍（`121.45,24.95,121.65,25.10`）→ 分別用 `car.lua`（內建）與自製 `scooter.lua` 跑 `osrm-extract` → `osrm-partition` → `osrm-customize` → 啟動 `osrm-routed --algorithm mld` → 呼叫 `/table/v1/driving/...?annotations=duration`。**兩種 profile 都成功**：台北車站→信義威秀，car 8.6 分鐘、scooter 9.1 分鐘（反向：car 9.4 分鐘、scooter 9.8 分鐘）——這個測試範圍內的路線本來就沒有國道/快速道路，所以兩者數字接近是合理的，還沒測到「機車不能走國道」真正發揮作用的路線。
+- **踩到的坑**：第一次跑測試 scooter.lua 的步驟時出現 `[error] Profile /profiles/scooter.lua not found!`——原因是這個 workflow 之前所有步驟都只用得到「Docker 映像內建檔案」或「下載來的資料」，從來沒用到 repo 裡的檔案，所以**一直沒有 `actions/checkout` 步驟**；加了需要讀 `tools/travel/osrm/scooter.lua` 的步驟後才讓這個缺口露出來。修法：在 job 最前面加 `uses: actions/checkout@v4`。
+- 步行（foot.lua）尚未測試，但走法跟 car/scooter 一樣（映像內建，不用額外寫 profile），之後驗證階段再一併跑。
+- **下一步**：`osrm-explore.yml` 目前只是開發用探索，正式流程（跑全台 102 間影城）還需要寫一支正式腳本，把裁切範圍從「台北小範圍」換成「全台灣」，對每間影城座標跑 car/scooter/foot 三種 profile 的 table API，輸出結果存起來供「驗證比對 Google 地圖」用。這一步待 r5py（大眾運輸）也完成後再一起做，兩者輸出格式會放在同一個比對腳本裡處理。
 
 ## 公車／台鐵資料格式探索結果（2026-11-18）
 
