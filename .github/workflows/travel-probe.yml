@@ -24,8 +24,14 @@ jobs:
           probe "Docker Hub (OSRM image)" "https://hub.docker.com/v2/repositories/osrm/osrm-backend/"
           probe "Conda-forge (r5py 依賴用)" "https://conda.anaconda.org/conda-forge/"
 
+      - name: 檢查 TDX Secrets 是否已設定
+        id: tdxcheck
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+        run: echo "has_tdx=$([ -n \"$TDX_CLIENT_ID\" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: 測試 TDX 金鑰（若已設定 Secrets）
-        if: ${{ secrets.TDX_CLIENT_ID != '' }}
+        if: steps.tdxcheck.outputs.has_tdx == 'true'
         env:
           TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
           TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
@@ -52,5 +58,5 @@ jobs:
           fi
 
       - name: 尚未設定 TDX Secrets 時的提示
-        if: ${{ secrets.TDX_CLIENT_ID == '' }}
+        if: steps.tdxcheck.outputs.has_tdx != 'true'
         run: echo "ℹ️ 尚未設定 TDX_CLIENT_ID / TDX_CLIENT_SECRET，略過金鑰測試。" >> "$GITHUB_STEP_SUMMARY"
