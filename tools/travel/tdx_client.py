@@ -50,7 +50,7 @@ class TdxError(Exception):
     pass
 
 
-def get_json(path: str, params: dict | None = None, *, min_interval: float = 0.6, max_retries: int = 6):
+def get_json(path: str, params: dict | None = None, *, min_interval: float = 1.2, max_retries: int = 8):
     """對 TDX basic API 發一個 GET，回傳解析後的 JSON。
 
     path 例如 "/v2/Rail/Metro/Station/TRTC"（不含網域與 /api/basic 前綴）。
@@ -72,7 +72,7 @@ def get_json(path: str, params: dict | None = None, *, min_interval: float = 0.6
             if e.code == 401:
                 get_token(force=True)
                 time.sleep(delay)
-                delay = min(delay * 2, 30)
+                delay = min(delay * 2, 60)
                 continue
             raw = e.read()
             last_err = TdxError(f"HTTP {e.code}: {raw[:300]!r}")
@@ -81,13 +81,13 @@ def get_json(path: str, params: dict | None = None, *, min_interval: float = 0.6
         except Exception as e:
             last_err = TdxError(f"無法解析 JSON: {e}; body[:200]={raw[:200]!r}")
             time.sleep(delay)
-            delay = min(delay * 2, 30)
+            delay = min(delay * 2, 60)
             continue
 
         if isinstance(body, dict) and body.get("message") and "rate limit" in str(body["message"]).lower():
             print(f"  [tdx] rate limited on {path}，{delay:.1f}s 後重試（第 {attempt + 1} 次）")
             time.sleep(delay)
-            delay = min(delay * 2, 30)
+            delay = min(delay * 2, 60)
             continue
 
         time.sleep(min_interval)  # 成功也稍微停一下，避免下一次連續呼叫觸發限制
