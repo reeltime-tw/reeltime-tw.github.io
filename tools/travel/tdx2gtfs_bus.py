@@ -145,7 +145,8 @@ def build_gtfs(cities: list[str], out_dir: Path, cinemas: list[tuple[float, floa
 
             # 班距：逐天展開（Schedule 的 ServiceDay 每個鍵各自 0/1，可能同時好幾天是 1）
             for sched in schedule_by_subroute.get((sub_id, direction), []):
-                active_days = tuple(d for d in DAYS if sched["ServiceDay"].get(d))
+                service_day = sched.get("ServiceDay") or {}
+                active_days = tuple(d for d in DAYS if service_day.get(d))
                 if not active_days:
                     continue
                 svc_id = "svc_" + "".join("1" if d in active_days else "0" for d in DAYS)
@@ -156,14 +157,16 @@ def build_gtfs(cities: list[str], out_dir: Path, cinemas: list[tuple[float, floa
                         row[d.lower()] = 1 if d in active_days else 0
                     calendar_rows.append(row)
                 headway = round(((sched.get("MinHeadwayMins", 0) + sched.get("MaxHeadwayMins", 0)) / 2) * 60)
-                if headway <= 0:
+                start_time = sched.get("StartTime")
+                end_time = sched.get("EndTime")
+                if headway <= 0 or not start_time or not end_time:
                     continue
                 frequencies_rows.append(
                     {
                         "trip_id": trip_id,
                         "service_id": svc_id,
-                        "start_time": _hhmm(sched["StartTime"]),
-                        "end_time": _hhmm(sched["EndTime"] if sched["EndTime"] != "00:00" else "24:00"),
+                        "start_time": _hhmm(start_time),
+                        "end_time": _hhmm(end_time if end_time != "00:00" else "24:00"),
                         "headway_secs": headway,
                     }
                 )
