@@ -77,7 +77,13 @@ def build_gtfs(operators: list[str], out_dir: Path):
     seen_calendar = set()
 
     for operator in operators:
-        data = fetch_operator(operator)
+        try:
+            data = fetch_operator(operator)
+        except Exception as e:
+            # 其中一個 operator 代碼錯誤或 TDX 沒資料時，跳過它、繼續抓其他 operator，
+            # 不要讓整個流程連其他捷運系統都抓不到。
+            print(f"[metro] {operator} 抓取失敗，跳過：{e}")
+            continue
 
         for st in data["stations"]:
             sid = f"{operator}-{st['StationID']}"

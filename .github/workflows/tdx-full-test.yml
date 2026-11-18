@@ -1,0 +1,30 @@
+name: TDX-全台資料測試（開發用，只驗證抓取不跑 OSRM/r5py）
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出 repo 內容
+        uses: actions/checkout@v4
+
+      - name: 安裝 Python 套件
+        run: python3 -m pip install --break-system-packages --upgrade pip
+
+      - name: 測試抓取全部捷運系統（TRTC/KRTC/TMRT/TYMC）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_metro.py TRTC KRTC TMRT TYMC
+          python3 tools/travel/validate_gtfs.py gtfs_out/metro
+
+      - name: 測試抓取全台影城所在的全部縣市公車
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_bus.py --all
+          python3 tools/travel/validate_gtfs.py gtfs_out/bus

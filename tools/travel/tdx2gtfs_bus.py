@@ -79,7 +79,14 @@ def build_gtfs(cities: list[str], out_dir: Path, cinemas: list[tuple[float, floa
     skipped = 0
 
     for city in cities:
-        data = fetch_city(city)
+        try:
+            data = fetch_city(city)
+        except Exception as e:
+            # 其中一個縣市代碼錯誤或 TDX 那個縣市沒資料時，不要讓整個流程連其他縣市
+            # 都抓不到——跳過這個縣市，繼續抓其他的（這個縣市的影城公車時間會比較不準，
+            # 但好過完全沒有大眾運輸資料）。
+            print(f"[bus] {city} 抓取失敗，跳過：{e}")
+            continue
 
         schedule_by_subroute = {}
         for s in data["schedule"]:
@@ -235,11 +242,53 @@ def _write_csv(path: Path, rows: list[dict]):
         w.writerows(rows)
 
 
+# 縣市中文名 → TDX 公車 City 代碼（表 2.1／TDX 文件：
+# https://bookdown.org/chiajungyeh/TDX_Guide/rail-data.html 同一套代碼公車 API 也通用）
+CITY_CODE = {
+    "台北市": "Taipei", "新北市": "NewTaipei", "桃園市": "Taoyuan",
+    "台中市": "Taichung", "臺中市": "Taichung", "台南市": "Tainan", "臺南市": "Tainan",
+    "高雄市": "Kaohsiung", "基隆市": "Keelung", "新竹市": "Hsinchu",
+    "新竹縣": "HsinchuCounty", "苗栗縣": "MiaoliCounty", "彰化縣": "ChanghuaCounty",
+    "南投縣": "NantouCounty", "雲林縣": "YunlinCounty", "嘉義市": "ChiayiCity",
+    "嘉義縣": "ChiayiCounty", "屏東縣": "PingtungCounty", "宜蘭縣": "YilanCounty",
+    "花蓮縣": "HualienCounty", "台東縣": "TaitungCounty", "臺東縣": "TaitungCounty",
+    "澎湖縣": "PenghuCounty", "金門縣": "KinmenCounty", "連江縣": "LienchiangCounty",
+}
+
+
+def cinemas_from_data(data_json: Path, geo_json: Path) -> tuple[list[str], list[tuple[float, float]]]:
+    """從 docs/data.json（含每間影城的 city 欄位）跟 docs/cinema-geo.json（座標）
+    湊出「全部有座標的影城」清單，回傳 (需要抓的縣市代碼清單, 影城座標清單)。"""
+    import json as jsonlib
+
+    cinemas_meta = jsonlib.loads(data_json.read_text(encoding="utf-8"))["cinemas"]
+    geo = jsonlib.loads(geo_json.read_text(encoding="utf-8"))["cinemas"]
+    cities = set()
+    coords = []
+    for c in cinemas_meta:
+        if c["id"] not in geo:
+            continue
+        code = CITY_CODE.get(c.get("city", ""))
+        if code:
+            cities.add(code)
+        coords.append(tuple(geo[c["id"]]))
+    return sorted(cities), coords
+
+
 if __name__ == "__main__":
-    # 預設：3 間試算影城（信義威秀、西門威秀、新店裕隆城威秀）方圓 2 公里內的公車
-    pilot_cinemas = [
-        (25.0353, 121.5666),  # 台北信義威秀
-        (25.0438, 121.5055),  # 台北西門威秀
-        (24.9784, 121.5468),  # 新店裕隆城威秀
-    ]
-    build_gtfs(["Taipei", "NewTaipei"], Path("gtfs_out") / "bus", pilot_cinemas, radius_km=2.0)
+    import os as _os
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--all":
+        # 全台 102 間影城方圓 2 公里內的公車（擴大到全台時用）
+        root = Path(_os.path.dirname(__file__)).parent.parent
+        cities, coords = cinemas_from_data(root / "docs" / "data.json", root / "docs" / "cinema-geo.json")
+        print(f"[bus] 全台模式：{len(coords)} 間影城，涵蓋 {len(cities)} 個縣市：{cities}")
+        build_gtfs(cities, Path("gtfs_out") / "bus", coords, radius_km=2.0)
+    else:
+        # 預設（試算階段）：3 間試算影城（信義威秀、西門威秀、新店裕隆城威秀）方圓 2 公里內的公車
+        pilot_cinemas = [
+            (25.0353, 121.5666),  # 台北信義威秀
+            (25.0438, 121.5055),  # 台北西門威秀
+            (24.9784, 121.5468),  # 新店裕隆城威秀
+        ]
+        build_gtfs(["Taipei", "NewTaipei"], Path("gtfs_out") / "bus", pilot_cinemas, radius_km=2.0)
