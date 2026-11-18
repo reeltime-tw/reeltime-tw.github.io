@@ -11,8 +11,14 @@
     反方向用「原路徑反過來，時間不變」近似（捷運雙向時間本來就幾乎對稱，可接受）。
   - 同一 LineNo 可能有多個 RouteID，代表不同的行駛範圍（例如板南線 BL-1 全程、
     BL-2 只到亞東醫院的區間車），不是方向。
-  - Frequency 的每個 RouteID 會有 TrainType 0 和 1 兩筆，對應去程／返程的班距
-    （實測兩者數字通常相同或接近，這裡分別套用到正向／反向 pattern trip）。
+  - 原本以為 Frequency 的 TrainType 0／1 對應去程／返程，但實測 TRTC 全部路線的
+    Frequency 都只有 TrainType=0（沒有任何 TrainType=1 的資料）。也就是 TrainType
+    其實跟方向無關（可能是列車種類，如普通車／直達車），台北捷運目前沒有這種區分，
+    所以一律是 0。曾經把「方向 1」綁定「只吃 TrainType=1 的班距」，導致反方向
+    完全沒有任何班距、沒有任何車次產生，r5py 選路時只能繞去別的、更慢的路線
+    （實測：新店站→西門站這種需要搭反方向的行程，算出 54 分鐘，Google 地圖只要
+    32 分鐘）。修正：兩個方向都套用該 RouteID 的「全部」Frequency 項（不分
+    TrainType），因為班距本來就是雙向對稱的（同一條路線、同樣班距雙向發車）。
 
 輸出：GTFS 資料夾（非 zip，r5py 兩種都吃；zip 由呼叫端視需要再壓）。
 """
@@ -108,9 +114,9 @@ def build_gtfs(operators: list[str], out_dir: Path):
             segs = sorted(route["TravelTimes"], key=lambda s: s["Sequence"])
             # 正向 pattern：照 TDX 給的順序
             # 反向 pattern：站序反過來，每段時間沿用（近似雙向對稱）
-            for direction, ordered_segs, train_type in (
-                (0, segs, 0),
-                (1, list(reversed(segs)), 1),
+            for direction, ordered_segs in (
+                (0, segs),
+                (1, list(reversed(segs))),
             ):
                 trip_id = f"{route_id}_dir{direction}"
                 trips_rows.append(
@@ -150,10 +156,9 @@ def build_gtfs(operators: list[str], out_dir: Path):
                         )
                         cum += seg.get("StopTime", 0)
 
-                # 這個方向對應的班距（用同 RouteID、對應 TrainType 的 Frequency 項）
+                # 這個方向對應的班距：同一個 RouteID 底下「全部」的 Frequency 項
+                # 都套用（不分 TrainType，見檔案開頭說明）——兩個方向共用同一批班距。
                 for f in freq_by_route.get(route["RouteID"], []):
-                    if f.get("TrainType") != train_type:
-                        continue
                     svc_id = service_id_of(f["ServiceDay"])
                     if svc_id not in seen_calendar:
                         seen_calendar.add(svc_id)
