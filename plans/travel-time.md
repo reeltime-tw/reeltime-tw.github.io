@@ -107,7 +107,8 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 2. ~~在 Actions 上做連線測試~~ ✅ 已完成。
 3. ~~寫網格程式（Python ＋ JS）與一致性測試~~ ✅ 已完成：`tools/travel/grid.py`、`tools/travel/grid.mjs`、`test/travel_grid.mjs`（1000 點隨機驗證全部一致）。
 4. **捷運 GTFS 轉換：已完成並通過真實資料驗證**（見下「捷運 GTFS 轉換 — 完成狀態」）。
-5. ⏳ **下一步（尚未開始）**：公車／台鐵 GTFS 轉換（`tools/travel/tdx2gtfs_bus.py`、`tdx2gtfs_tra.py`）；寫 r5py 計算程式與 OSRM 計算程式（含 `scooter.lua`），在 Actions 上只跑 3 間試算影城。
+5. ~~公車 GTFS 轉換~~ ✅ 已完成（見下「公車 GTFS 轉換 — 完成狀態」）。台鐵尚未轉換（3 間試算影城都不緊鄰台鐵站，優先度較低，先跳過）。
+5b. ⏳ **下一步（尚未開始）**：寫 r5py 計算程式（吃 metro+bus 的 GTFS）與 OSRM 計算程式（含 `scooter.lua`），在 Actions 上對 3 間試算影城算出時間矩陣。這一步需要在 Actions 上裝 Java（r5py 依賴 R5 引擎）與 Docker 跑 OSRM，比之前的資料抓取複雜很多，預期要花更多輪除錯。
 6. 驗證比對 Google 地圖，校正塞車係數；不合格就回第 4–5 步。
 7. App 端查表、退回粗估、隱私面板文字、測試。
 8. 校正 17 間 approx 座標。
@@ -121,6 +122,13 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 - `tools/travel/validate_gtfs_metro.py`：基本完整性檢查（孤兒站點／trip、時間遞增、座標範圍、班距合理性）。
 - `.github/workflows/travel-pilot.yml`：在 Actions 上跑 `tdx2gtfs_metro.py TRTC`，**真實資料測試通過**：122 站、11 條路線、75 個 pattern trip、75 筆班距，驗證全部通過。
 - `.github/workflows/tdx-explore.yml`：開發輔助用，探索 TDX API 格式，之後可刪除。
+
+## 公車 GTFS 轉換 — 完成狀態（2026-11-18）
+
+- `tools/travel/tdx2gtfs_bus.py`：**已完成並通過真實資料測試**。限制在 3 間試算影城（信義威秀、西門威秀、新店裕隆城威秀）方圓 2 公里內：保留 937 條 subroute、略過 1696 條，最終 569 條路線、3833 筆班距，驗證通過。
+- **已知效率問題（之後可優化，不影響正確性）**：目前「保留」一條路線後會把它**整條**（不管多遠）的站點都收進 `stops.txt`，不是只收範圍附近的站，所以 `stops.txt` 膨脹到 26527 筆。之後若要擴大到全台，應該改成只保留範圍內＋前後各 1-2 站（避免在範圍邊界就斷頭），不是整條路線全收。
+- 站間時間用「相鄰站點座標直線距離 × 1.3 繞路係數 ÷ 18 km/h」估算（因為 TDX 沒有公車站間運行時間 API）。這是近似值，之後驗證階段要特別注意公車路段的誤差可能比捷運大。
+- `tools/travel/validate_gtfs.py`：取代原本 `validate_gtfs_metro.py`（該檔案現在只是轉呼叫，保留相容性）。
 
 ## 公車／台鐵資料格式探索結果（2026-11-18）
 
