@@ -1,0 +1,96 @@
+"""TDX API 共用用戶端：登入、帶重試與間隔的 GET。
+
+實測發現：連續呼叫太快會收到 HTTP 200 但內容是
+{"message": "API rate limit exceeded"} 的錯誤（不是用 429 狀態碼表示），
+所以不能只看 HTTP code，要檢查回應內容。
+
+環境變數 TDX_CLIENT_ID / TDX_CLIENT_SECRET 需先設定。
+"""
+
+from __future__ import annotations
+
+import os
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import json
+
+TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
+BASE = "https://tdx.transportdata.tw/api/basic"
+
+_token = None
+_token_at = 0.0
+
+
+def get_token(force: bool = False) -> str:
+    global _token, _token_at
+    if _token and not force and time.time() - _token_at < 60 * 20:
+        return _token
+    client_id = os.environ["TDX_CLIENT_ID"]
+    client_secret = os.environ["TDX_CLIENT_SECRET"]
+    data = urllib.parse.urlencode(
+        {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+    ).encode()
+    req = urllib.request.Request(
+        TOKEN_URL, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        body = json.load(resp)
+    _token = body["access_token"]
+    _token_at = time.time()
+    return _token
+
+
+class TdxError(Exception):
+    pass
+
+
+def get_json(path: str, params: dict | None = None, *, min_interval: float = 0.6, max_retries: int = 6):
+    """對 TDX basic API 發一個 GET，回傳解析後的 JSON。
+
+    path 例如 "/v2/Rail/Metro/Station/TRTC"（不含網域與 /api/basic 前綴）。
+    會自動補上 $format=JSON。遇到 rate limit 訊息會等待後重試（指數退避）。
+    """
+    q = dict(params or {})
+    q.setdefault("$format", "JSON")
+    url = BASE + path + "?" + urllib.parse.urlencode(q)
+
+    delay = min_interval
+    last_err = None
+    for attempt in range(max_retries):
+        token = get_token()
+        req = urllib.request.Request(url, headers={"authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read()
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                get_token(force=True)
+                time.sleep(delay)
+                delay = min(delay * 2, 30)
+                continue
+            raw = e.read()
+            last_err = TdxError(f"HTTP {e.code}: {raw[:300]!r}")
+        try:
+            body = json.loads(raw)
+        except Exception as e:
+            last_err = TdxError(f"無法解析 JSON: {e}; body[:200]={raw[:200]!r}")
+            time.sleep(delay)
+            delay = min(delay * 2, 30)
+            continue
+
+        if isinstance(body, dict) and body.get("message") and "rate limit" in str(body["message"]).lower():
+            print(f"  [tdx] rate limited on {path}，{delay:.1f}s 後重試（第 {attempt + 1} 次）")
+            time.sleep(delay)
+            delay = min(delay * 2, 30)
+            continue
+
+        time.sleep(min_interval)  # 成功也稍微停一下，避免下一次連續呼叫觸發限制
+        return body
+
+    raise last_err or TdxError(f"重試 {max_retries} 次後仍失敗: {path}")
