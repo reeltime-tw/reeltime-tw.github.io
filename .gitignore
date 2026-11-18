@@ -1,3 +1,7 @@
 node_modules/
 test/*.png
 windows/update.log
+__pycache__/
+*.pyc
+gtfs_out/
+*.zip
