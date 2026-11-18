@@ -42,19 +42,24 @@ jobs:
             -d "grant_type=client_credentials&client_id=${TDX_CLIENT_ID}&client_secret=${TDX_CLIENT_SECRET}")
           code=$(echo "$resp" | tail -1)
           echo "TDX 登入測試: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+          echo "TDX_LOGIN_HTTP_CODE=$code"
           if [ "$code" = "200" ]; then
             echo "✅ TDX 金鑰可用，成功拿到 token" >> "$GITHUB_STEP_SUMMARY"
+            echo "TDX_LOGIN_OK=true"
             # 用 token 試打一個捷運 API
             token=$(echo "$resp" | head -1 | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
             apicode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
               -H "authorization: Bearer $token" \
               "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/TRTC?%24format=JSON")
             echo "台北捷運站點 API: HTTP $apicode" >> "$GITHUB_STEP_SUMMARY"
+            echo "TDX_METRO_API_HTTP_CODE=$apicode"
           else
             echo "❌ TDX 金鑰測試失敗，回應：" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             echo "$resp" | head -1 >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "TDX_LOGIN_OK=false"
+            echo "TDX_ERROR_BODY: $(echo "$resp" | head -1)"
           fi
 
       - name: 尚未設定 TDX Secrets 時的提示
