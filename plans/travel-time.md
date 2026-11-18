@@ -103,16 +103,32 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 
 ## 執行順序（任務清單）
 
-1. **使用者**：註冊 TDX、建立兩個 GitHub Secrets（給他逐步、可直接照做的說明，含網址）。← **目前卡在這一步，等使用者操作**
-2. ~~在 Actions 上做連線測試~~（已完成，見上「執行進度」）。
-3. 寫 `tdx2gtfs.py`，先做台北捷運＋台北／新北公車＋台鐵；用 `gtfs-kit` 或 r5py 載入驗證格式。
-4. 寫網格程式（Python ＋ JS）與一致性測試。
-5. 寫 r5py 計算程式與 OSRM 計算程式（含 `scooter.lua`），在 Actions 上只跑 3 間試算影城。
-6. 驗證比對，校正塞車係數；不合格就回第 3–5 步。
+1. ~~使用者註冊 TDX、建立兩個 GitHub Secrets~~ ✅ 已完成。
+2. ~~在 Actions 上做連線測試~~ ✅ 已完成。
+3. ~~寫網格程式（Python ＋ JS）與一致性測試~~ ✅ 已完成：`tools/travel/grid.py`、`tools/travel/grid.mjs`、`test/travel_grid.mjs`（1000 點隨機驗證全部一致）。
+4. **捷運 GTFS 轉換：已完成並通過真實資料驗證**（見下「捷運 GTFS 轉換 — 完成狀態」）。
+5. ⏳ **下一步（尚未開始）**：公車／台鐵 GTFS 轉換（`tools/travel/tdx2gtfs_bus.py`、`tdx2gtfs_tra.py`）；寫 r5py 計算程式與 OSRM 計算程式（含 `scooter.lua`），在 Actions 上只跑 3 間試算影城。
+6. 驗證比對 Google 地圖，校正塞車係數；不合格就回第 4–5 步。
 7. App 端查表、退回粗估、隱私面板文字、測試。
 8. 校正 17 間 approx 座標。
 9. 擴到全台，補其他縣市 TDX 資料，寫 `COVERAGE.md`。
 10. 更新 `CLAUDE.md`，交接說明。
+
+## 捷運 GTFS 轉換 — 完成狀態（2026-11-18）
+
+- `tools/travel/tdx_client.py`：TDX 登入＋**帶重試的 GET**。**重要發現**：TDX 對連續呼叫過快會回 **HTTP 200 但內容是 `{"message":"API rate limit exceeded"}`**（不是用 429 狀態碼），所以不能只檢查 HTTP code，一定要檢查回應內容。已處理：每次呼叫後固定等待、遇到限流訊息指數退避重試。
+- `tools/travel/tdx2gtfs_metro.py`：把 `Rail/Metro/Station`、`S2STravelTime`、`Frequency` 轉成標準 GTFS（stops/routes/trips/stop_times/frequencies/calendar.txt）。**已知簡化**：TDX 的 `S2STravelTime` 每個 RouteID 只給一個方向的站間時間，反方向用「路徑反過來、時間不變」近似（捷運雙向時間本來就幾乎對稱）。同一 LineNo 可能有多個 RouteID＝不同行駛範圍（例如板南線有全程車與只到亞東醫院的區間車），不是方向。
+- `tools/travel/validate_gtfs_metro.py`：基本完整性檢查（孤兒站點／trip、時間遞增、座標範圍、班距合理性）。
+- `.github/workflows/travel-pilot.yml`：在 Actions 上跑 `tdx2gtfs_metro.py TRTC`，**真實資料測試通過**：122 站、11 條路線、75 個 pattern trip、75 筆班距，驗證全部通過。
+- `.github/workflows/tdx-explore.yml`：開發輔助用，探索 TDX API 格式，之後可刪除。
+
+## Actions 的侷限（已驗證）
+
+- `gh workflow run` 在這個 Claude Code 環境會先查 GraphQL 找預設分支，而 CCR proxy 擋 GraphQL（HTTP 403）。**改用** `gh api repos/{owner}/{repo}/actions/workflows/{file}/dispatches -X POST -f ref=main` 觸發。
+- `gh secret list/set` 一樣被 CCR proxy 擋（HTTP 403），**金鑰只能請使用者自己到網頁設定**。
+- Actions 產生的 **artifact 下載不了**：`gh run download` 會去抓 `productionresultssa17.blob.core.windows.net`，被這個環境的對外連線白名單擋下（`connect_rejected`）。**要檢查 Actions 算出來的內容，一律用 `cat`／`echo` 印到一般 log 裡**（用 `gh run view --log` 抓），不要依賴上傳 artifact 下載回來看。真的需要大檔案才用 artifact（給使用者電腦下載，不是給這個環境用）。
+- 寫 workflow YAML 時，**絕對不要在 `run: |` 區塊裡內嵌多行、且縮排比 run 內容淺的 heredoc**（例如直接寫一段 0 縮排的 Python），YAML 區塊純量會把這些行當成文件結束，導致整份 YAML 解析錯誤、GitHub 還會把 workflow 名稱顯示成檔名（這是「parse 失敗」的徵兆，要留意）。改法：寫成獨立 `.py` 檔用 `python3 path/to/script.py` 呼叫。
+- 每次改完 workflow，**先在本機跑 `python3 -c "import yaml; yaml.safe_load(open('xxx.yml'))"` 驗證語法再推送**，可以少跑很多次 Actions 來回除錯。
 
 ## 不要做的事
 
