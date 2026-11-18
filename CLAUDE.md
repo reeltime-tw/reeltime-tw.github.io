@@ -139,4 +139,9 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 - **快捷列移除「18 點後／中午前」**（使用者要求），首頁、電影頁、影城頁的快捷列只放特殊廳規格（依當天有場次的 `KINDS` 顯示）；電影頁、影城頁另外顯示語言。
 - **新增語言／配音篩選**：`LANGS=['國語','英語','日語','韓語','粵語']`，`langsOf(format)` 從版本文字判斷（`國`、`中文`、`CHI` 都算國語，含中文配音版與華語片），場次多一個 `_l` 欄位、狀態 `S.langs`。版本文字沒標語言的場次（如美麗華「標準廳」）選了語言後不會出現，面板內已註明。
 - **電影頁影城卡片改為可收合**（使用者：畫面太長難滑）：預設收起，標題列顯示「N 場＋前 4 個時間＋版本」，點標題展開看票根；只有一間影城或常用影城時自動展開；有「全部展開／全部收起」。狀態 `S.open`、`S.closed`、`S.openFor`（換電影就重置）。展開後底部有「看這間影城的所有電影」連到影城頁（標題列現在是展開按鈕，不再是連結）。
-- **自動定位縣市**：`locateMe()` 用 `navigator.geolocation` 取座標 → `cityFromCoords()` 先問 BigDataCloud 免金鑰反查（`reverse-geocode-client`，回 `principalSubdivision` 如「臺北市」，已實測台北/三重/台中/高雄皆正確）→ 失敗則用 `CITY_CENTER` 找最近且有影城的縣市。`twc.cityMode`：`auto`（每次開 App 依位置切換）或 `manual`（使用者手動選縣市後就不再被定位蓋掉）；縣市面板最上方「使用目前位置」可切回 auto。拒絕權限記在 `twc.geoDenied`，不再自動詢問。
+- **定位與隱私（取代原本的 BigDataCloud 做法）**：位置**不離開手機**。
+  - `docs/tw-counties.json`（68KB，gzip 約 18KB）：內建縣市邊界，由 `tools/build-counties.cjs` 從 npm `taiwan-atlas`（MIT，內政部縣市界線）簡化產生；已用 30 個交界地點（三重/西門町/永和/新竹市縣等）驗證全對。`countyAt()` 點在多邊形內判斷，找不到時用 `CITY_CENTER` 最近縣市。
+  - **先說明再詢問**：首頁卡片說明用途後，使用者按「使用目前位置」才呼叫 geolocation；開 App 時只有 `twc.geoOK=true`（同意過）且 `cityMode=auto` 才自動定位。只存縣市，不存經緯度。
+  - **CSP**（`<meta http-equiv=Content-Security-Policy>`）：`connect-src 'self'`、`img-src 'self' data:`、`font-src 'self'`，瀏覽器擋下所有對外連線。因此 **Barlow Condensed 字型改放 `docs/fonts/`（SIL OFL）**、海報只用 `posterLocal`（不再退回官網原圖）。**之後任何功能都不能加對外 fetch/外部圖片/外部字型，否則會被 CSP 擋**；外部只能用使用者點擊的連結（a href）。
+  - 隱私說明面板 `privacySheet()`（頁尾、定位卡片、縣市面板都有入口），可「停止自動定位」。
+  - **`test/privacy.py`**：模擬 5 個地點定位，檢查開啟時不自動要位置、縣市正確、無對外連線、沒有請求帶經緯度、CSP 生效（用 `securitypolicyviolation` 事件判斷，不是看連線失敗）、localStorage 不存經緯度。已用「拿掉 CSP＋故意外送座標」的壞版本確認測試會失敗。改版後執行：`cd docs && python3 -m http.server 8770 &` 再 `python3 test/privacy.py http://localhost:8770/`。
