@@ -27,11 +27,36 @@ jobs:
           python3 -m pip install --break-system-packages --upgrade pip
           python3 -m pip install --break-system-packages r5py geopandas shapely pandas
 
+      - name: 產生捷運/輕軌 GTFS（全部 8 個業者，台鐵/高鐵尚未支援）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_metro.py TRTC KRTC TYMC NTMC NTDLRT NTALRT TMRT KLRT
+          python3 tools/travel/validate_gtfs.py gtfs_out/metro
+
+      - name: 產生公車 GTFS（全台 111 間影城方圓 2 公里內，--all 涵蓋所有縣市）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_bus.py --all
+          python3 tools/travel/validate_gtfs.py gtfs_out/bus
+
+      - name: 把 GTFS 資料夾壓成 zip（r5py 吃 zip）
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq zip
+          (cd gtfs_out/metro && zip -q -r ../metro.zip .)
+          (cd gtfs_out/bus && zip -q -r ../bus.zip .)
+
       - name: 下載全台 OSM 資料（不裁切，全島都要算路程時間）
         run: |
+          # 這一步放在 GTFS 後面：GTFS 要是因為 TDX 掛掉而失敗，前面就先停了，
+          # 不用浪費時間下載+建這個全島 OSM/OSRM（本來是放最前面，結果真的
+          # 遇過 TDX 全部 500，白白燒了 13 分鐘才在 r5py 那端爛掉）。
           curl -L --max-time 600 --retry 5 --retry-delay 5 --retry-all-errors \
             -o taiwan.osm.pbf "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
-          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool zip
+          sudo apt-get install -y -qq osmium-tool
           ls -la taiwan.osm.pbf
           osmium fileinfo taiwan.osm.pbf
 
@@ -71,27 +96,6 @@ jobs:
           docker logs osrm-car --tail 20
           docker logs osrm-scooter --tail 20
           docker logs osrm-foot --tail 20
-
-      - name: 產生捷運/輕軌 GTFS（全部 8 個業者，台鐵/高鐵尚未支援）
-        env:
-          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
-          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
-        run: |
-          python3 tools/travel/tdx2gtfs_metro.py TRTC KRTC TYMC NTMC NTDLRT NTALRT TMRT KLRT
-          python3 tools/travel/validate_gtfs.py gtfs_out/metro
-
-      - name: 產生公車 GTFS（全台 111 間影城方圓 2 公里內，--all 涵蓋所有縣市）
-        env:
-          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
-          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
-        run: |
-          python3 tools/travel/tdx2gtfs_bus.py --all
-          python3 tools/travel/validate_gtfs.py gtfs_out/bus
-
-      - name: 把 GTFS 資料夾壓成 zip（r5py 吃 zip）
-        run: |
-          (cd gtfs_out/metro && zip -q -r ../metro.zip .)
-          (cd gtfs_out/bus && zip -q -r ../bus.zip .)
 
       - name: 產生全台影城清單（docs/cinema-geo.json ∩ docs/data.json）
         run: |

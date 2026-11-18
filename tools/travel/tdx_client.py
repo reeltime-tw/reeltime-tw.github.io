@@ -23,7 +23,11 @@ _token = None
 _token_at = 0.0
 
 
-def get_token(force: bool = False) -> str:
+def get_token(force: bool = False, max_retries: int = 6) -> str:
+    """換 token。這裡也要重試——2026-11-18 晚間實測發現 TDX 的登入端點本身
+    偶爾會回 500（跟資料端點的限流是兩回事），原本沒重試，一次 500 就讓
+    整個抓取流程直接失敗（而且因為是最原始的 urllib.error.HTTPError 往外丟，
+    連 get_json() 自己的重試邏輯都沒機會跑到）。"""
     global _token, _token_at
     if _token and not force and time.time() - _token_at < 60 * 20:
         return _token
@@ -36,14 +40,24 @@ def get_token(force: bool = False) -> str:
             "client_secret": client_secret,
         }
     ).encode()
-    req = urllib.request.Request(
-        TOKEN_URL, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
-    )
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        body = json.load(resp)
-    _token = body["access_token"]
-    _token_at = time.time()
-    return _token
+    delay = 2.0
+    last_err: Exception | None = None
+    for attempt in range(max_retries):
+        req = urllib.request.Request(
+            TOKEN_URL, data=data, headers={"content-type": "application/x-www-form-urlencoded"}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                body = json.load(resp)
+            _token = body["access_token"]
+            _token_at = time.time()
+            return _token
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            last_err = e
+            print(f"  [tdx] 登入端點失敗（{e}），{delay:.1f}s 後重試（第 {attempt + 1}/{max_retries} 次）")
+            time.sleep(delay)
+            delay = min(delay * 2, 60)
+    raise TdxError(f"登入 {max_retries} 次後仍失敗: {last_err}")
 
 
 class TdxError(Exception):
@@ -65,17 +79,29 @@ def get_json(path: str, params: dict | None = None, *, min_interval: float = 1.2
     for attempt in range(max_retries):
         token = get_token()
         req = urllib.request.Request(url, headers={"authorization": f"Bearer {token}"})
+        had_http_error = False
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 raw = resp.read()
-        except urllib.error.HTTPError as e:
-            if e.code == 401:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            if getattr(e, "code", None) == 401:
                 get_token(force=True)
                 time.sleep(delay)
                 delay = min(delay * 2, 60)
                 continue
-            raw = e.read()
-            last_err = TdxError(f"HTTP {e.code}: {raw[:300]!r}")
+            had_http_error = True
+            raw = e.read() if hasattr(e, "read") else b""
+            last_err = TdxError(f"HTTP 錯誤：{e}；body[:300]={raw[:300]!r}")
+
+        # 就算是錯誤回應（像之前遇到的 500），body 也可能恰好是合法 JSON
+        # （例如 {"error": "..."}），這種情況也要當失敗重試，不能因為
+        # json.loads 沒丟例外就誤判成功。
+        if had_http_error:
+            print(f"  [tdx] {path} 失敗（{last_err}），{delay:.1f}s 後重試（第 {attempt + 1}/{max_retries} 次）")
+            time.sleep(delay)
+            delay = min(delay * 2, 60)
+            continue
+
         try:
             body = json.loads(raw)
         except Exception as e:

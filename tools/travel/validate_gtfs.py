@@ -30,6 +30,17 @@ def main(gtfs_dir: str):
     print(f"stops={len(stops)} routes={len(routes)} trips={len(trips)} "
           f"stop_times={len(stop_times)} frequencies={len(frequencies)} calendar={len(calendar)}")
 
+    # 2026-11-19 補的檢查：之前完全沒抓到資料（TDX 那邊全部 500，每個業者/
+    # 縣市都跳過）時，這裡輸出的是全空的 GTFS，但因為沒有任何「不合理」的
+    # 內容（沒有孤兒站點、沒有負數時間……全部都是零筆），舊版檢查會印出
+    # 「✓ 基本檢查全部通過」，沒有攔下來——直到後面 r5py 建網路時才爛掉，
+    # 已經浪費了前面 OSM/OSRM 的建置時間。這裡明確擋下「完全沒資料」。
+    if not stops or not routes or not trips:
+        problems.append(
+            f"GTFS 是空的（stops={len(stops)} routes={len(routes)} trips={len(trips)}）"
+            "——可能是 TDX 這次全部抓取失敗，不是「這個縣市真的沒有這種車」"
+        )
+
     stop_ids = {s["stop_id"] for s in stops}
     trip_ids = {t["trip_id"] for t in trips}
 
