@@ -198,10 +198,33 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 5. ~~公車 GTFS 轉換~~ ✅ 已完成（見下「公車 GTFS 轉換 — 完成狀態」）。台鐵尚未轉換（3 間試算影城都不緊鄰台鐵站，優先度較低，先跳過）。
 5b. ~~OSRM（開車／機車／步行）與 r5py（大眾運輸＋步行）~~ ✅ 兩條計算路徑都已驗證可行（見下「OSRM 路網計算 — 完成狀態」、「r5py（大眾運輸）」）。目前都還是「台北小範圍」規模的開發探索腳本，還沒擴大到全台 102 間影城的正式流程。
 6. ✅ **完成**：驗證比對 Google 地圖，校正塞車係數。8-11 個樣本的結果：開車×2.32、機車×1.99、走路×1.18（全域中位數倍率，v1 方案）；大眾運輸公車測速 25km/h＋修正捷運反方向沒有班距的系統性 bug 後，全部樣本都在 ≤12 分門檻內（見「驗證進度」「異常值真正原因找到並修正」）。下一步進入第 7 步：擴大到全台 102 間影城的正式流程。
-7. App 端查表、退回粗估、隱私面板文字、測試。
+7. ✅ **完成**：App 端查表、退回粗估、隱私面板文字、測試。`.github/workflows/travel-pilot-build.yml` 已經真的跑完並推上 GitHub（`docs/travel/{信義威秀,西門威秀,新店裕隆城威秀}.bin` + `index.json`，半徑 20km，每個約 25KB）；App 端 `travelLookup()`／`loadTravelBin()` 已接上 `leaveHTML()`，查到資料顯示「已算路網與班表」，查不到退回「推估」；隱私面板補了說明；`test/travel_lookup.py`（查表邏輯＋退回粗估＋跨午夜場次）、`test/privacy.py`（查表請求不含座標/格子參數）都通過。細節見下方「正式產出 — 完成狀態」。下一步：8-9。
 8. 校正 17 間 approx 座標。
-9. 擴到全台，補其他縣市 TDX 資料，寫 `COVERAGE.md`。
+9. 擴到全台 102 間影城、半徑拉到 60km（目前只做了 20km，檔案大小還有空間：20km≈25KB/間，60km估算約231KB/間，仍在 300KB 目標內），補其他縣市 TDX 資料，寫 `COVERAGE.md`。
 10. 更新 `CLAUDE.md`，交接說明。
+
+## 正式產出 — 完成狀態（2026-11-18，3 間試算影城，半徑 20km）
+
+`compute_osrm_grid.py`（呼叫 OSRM `/table`，批次 100 個來源一次）、`compute_transit_grid.py`
+（r5py `TravelTimeMatrix`）、`pack_bin.py`（套校正倍率、打包成二進位，格式見上面
+「檔案格式」）三個腳本串起來，`.github/workflows/travel-pilot-build.yml` 跑完整流程：
+下載台灣 OSM → 裁切出覆蓋 3 間試算影城 20km 的範圍 → OSRM car/scooter/foot 三條管線
+→ 算 OSRM 網格 → 捷運＋公車 GTFS → 算大眾運輸網格 → 打包 → commit/push。
+
+**踩到的坑**：第一次跑完，GitHub Actions 畫面上每一步都顯示綠勾勾、整體也顯示
+「成功」，但推送其實被拒絕了（`denied to github-actions[bot]`——預設 `GITHUB_TOKEN`
+只有讀取權限），而且重試迴圈最後一行是 `sleep`，推送失敗 3 次後迴圈仍以 exit 0
+結束，所以步驟沒有顯示失敗，差點沒發現。**修正**：workflow 加
+`permissions: contents: write`（但這只能在 repo 的「Workflow permissions」設定本身
+允許寫入的前提下才有效——這個設定本身的上限不能用 workflow YAML 覆蓋過去，所以
+請使用者手動到 repo Settings → Actions → General 把它改成「Read and write
+permissions」）；重試迴圈改成真的失敗時 `exit 1`，之後不會再被「全部綠勾勾」騙到。
+
+**驗證結果**（用真實瀏覽器查剛推上去的 `vs-台北西門威秀影城.bin`）：
+市政府站→西門威秀 car 23/scooter 21/walk 96/transit 28 分，新店站→西門威秀
+car 34/scooter 32/walk 145/transit 34 分，西門站→西門威秀 car 4/scooter 4/walk
+10/transit 13 分——跟試算階段驗證樣本（見「驗證進度」）量級一致（不會逐位元組
+相同，因為是不同一次的 OSM/計算結果，但數字吻合），查表機制在真實資料上運作正常。
 
 ## 捷運 GTFS 轉換 — 完成狀態（2026-11-18）
 
