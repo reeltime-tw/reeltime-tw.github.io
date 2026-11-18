@@ -1,0 +1,38 @@
+name: OSRM-環境探索（開發用，非正式流程）
+on:
+  workflow_dispatch: {}
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 確認 docker 版本與能否拉 osrm-backend 映像
+        run: |
+          docker --version
+          docker pull osrm/osrm-backend:latest
+          docker run --rm osrm/osrm-backend:latest osrm-extract --version || true
+
+      - name: 列出映像內建的 profile 檔案
+        run: |
+          docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "ls -la /opt/ 2>/dev/null; find / -maxdepth 4 -iname '*.lua' 2>/dev/null"
+
+      - name: 印出 car.lua 的前 80 行（看 API 風格）
+        run: |
+          docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "head -80 /opt/car.lua 2>/dev/null || echo '找不到 /opt/car.lua'"
+
+      - name: 印出 car.lua 結尾（看它 return 什麼）
+        run: |
+          docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "tail -30 /opt/car.lua 2>/dev/null"
+
+      - name: 小範圍實測：下載一小塊真實 OSM 資料跑 extract
+        run: |
+          curl -sL --max-time 60 -o taipei.osm.pbf \
+            "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
+          ls -la taipei.osm.pbf
+
+      - name: 用 osmium 裁切出台北小範圍（先確認 osmium 可用）
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+          osmium extract -b 121.45,24.95,121.65,25.10 taipei.osm.pbf -o taipei-small.osm.pbf --overwrite
+          ls -la taipei-small.osm.pbf
+          osmium fileinfo taipei-small.osm.pbf
