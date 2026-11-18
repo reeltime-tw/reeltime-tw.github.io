@@ -19,24 +19,16 @@ jobs:
         run: |
           docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "ls -la /opt/ 2>/dev/null; find / -maxdepth 4 -iname '*.lua' 2>/dev/null"
 
-      - name: 印出 car.lua 的前 80 行（看 API 風格）
-        run: |
-          docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "head -80 /opt/car.lua 2>/dev/null || echo '找不到 /opt/car.lua'"
-
-      - name: 印出完整 car.lua（供後續寫 scooter.lua 參考）
-        run: |
-          docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "cat /opt/car.lua 2>/dev/null"
-
       - name: 下載台灣 OSM 資料（檔案較大，放寬時間限制＋重試）
         run: |
           curl -L --max-time 300 --retry 5 --retry-delay 5 --retry-all-errors \
             -o taiwan.osm.pbf "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
           ls -la taiwan.osm.pbf
 
-      - name: 用 osmium 裁切出台北小範圍（先確認 osmium 可用）
+      - name: 用 osmium 裁切出台北小範圍（先確認 osmium 可用；範圍放寬以包含新店站取樣點）
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
-          osmium extract -b 121.45,24.95,121.65,25.10 taiwan.osm.pbf -o taipei-small.osm.pbf --overwrite
+          osmium extract -b 121.40,24.90,121.65,25.10 taiwan.osm.pbf -o taipei-small.osm.pbf --overwrite
           ls -la taipei-small.osm.pbf
           osmium fileinfo taipei-small.osm.pbf
 
@@ -50,12 +42,14 @@ jobs:
             osrm-customize /data/taipei-small.osrm
           ls -la taipei-small.osrm*
 
-      - name: 啟動 osrm-routed 並測一次 table API（台北車站→信義威秀，car）
+      - name: 啟動 osrm-routed 並算 5 起點×3 影城時間矩陣（car）
         run: |
           docker run -d --name osrm-test -v "$PWD:/data" -p 5000:5000 osrm/osrm-backend:latest \
             osrm-routed --algorithm mld /data/taipei-small.osrm
           sleep 5
-          curl -s "http://localhost:5000/table/v1/driving/121.5171,25.0478;121.5666,25.0353?annotations=duration" | head -c 1000
+          # 座標順序：台北車站,西門站,市政府站,新店站,公館站(起點 0-4), 信義威秀,西門威秀,新店裕隆城威秀(終點 5-7)
+          curl -s "http://localhost:5000/table/v1/driving/121.5171,25.0478;121.5076,25.0421;121.5677,25.0406;121.5386,24.9674;121.5345,25.0147;121.5666,25.0353;121.5055,25.0438;121.5468,24.9784?sources=0;1;2;3;4&destinations=5;6;7&annotations=duration"
+          echo
           docker logs osrm-test
           docker stop osrm-test
 
@@ -70,11 +64,33 @@ jobs:
             osrm-customize /data/taipei-small-scooter.osrm
           ls -la taipei-small-scooter.osrm*
 
-      - name: 啟動 osrm-routed 並測一次 table API（台北車站→信義威秀，scooter）
+      - name: 啟動 osrm-routed 並算 5 起點×3 影城時間矩陣（scooter）
         run: |
           docker run -d --name osrm-test-scooter -v "$PWD:/data" -p 5001:5000 osrm/osrm-backend:latest \
             osrm-routed --algorithm mld /data/taipei-small-scooter.osrm
           sleep 5
-          curl -s "http://localhost:5001/table/v1/driving/121.5171,25.0478;121.5666,25.0353?annotations=duration" | head -c 1000
+          curl -s "http://localhost:5001/table/v1/driving/121.5171,25.0478;121.5076,25.0421;121.5677,25.0406;121.5386,24.9674;121.5345,25.0147;121.5666,25.0353;121.5055,25.0438;121.5468,24.9784?sources=0;1;2;3;4&destinations=5;6;7&annotations=duration"
+          echo
           docker logs osrm-test-scooter
           docker stop osrm-test-scooter
+
+      - name: 用裁切後的小範圍跑 osrm-extract（內建 foot.lua，步行）
+        run: |
+          cp taipei-small.osm.pbf taipei-small-foot.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-extract -p /opt/foot.lua /data/taipei-small-foot.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-partition /data/taipei-small-foot.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-customize /data/taipei-small-foot.osrm
+          ls -la taipei-small-foot.osrm*
+
+      - name: 啟動 osrm-routed 並算 5 起點×3 影城時間矩陣（foot）
+        run: |
+          docker run -d --name osrm-test-foot -v "$PWD:/data" -p 5002:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld /data/taipei-small-foot.osrm
+          sleep 5
+          curl -s "http://localhost:5002/table/v1/walking/121.5171,25.0478;121.5076,25.0421;121.5677,25.0406;121.5386,24.9674;121.5345,25.0147;121.5666,25.0353;121.5055,25.0438;121.5468,24.9784?sources=0;1;2;3;4&destinations=5;6;7&annotations=duration"
+          echo
+          docker logs osrm-test-foot
+          docker stop osrm-test-foot
