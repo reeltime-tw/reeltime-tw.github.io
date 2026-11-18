@@ -3,6 +3,12 @@ name: 路程時間-試算影城正式產出（3 間試算影城，半徑 20km）
 on:
   workflow_dispatch: {}
 
+permissions:
+  contents: write  # 這個 workflow 要自己 commit/push docs/travel/*.bin，預設的 GITHUB_TOKEN
+                   # 只有讀取權限，上一次跑就是因為沒有這行被 GitHub 拒絕推送（denied to
+                   # github-actions[bot]），而且重試迴圈的最後一行是 sleep，導致推送失敗
+                   # 時整個步驟仍然顯示成功——已經一併修正成失敗時真的讓步驟失敗。
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -137,8 +143,13 @@ jobs:
             exit 0
           fi
           git commit -m "$(printf '路程時間：產出 3 間試算影城的精確時間表（半徑 20km）\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01Xk3ci6XGRZUEafyUGjrBrm')"
+          ok=0
           for i in 1 2 3; do
-            git pull --rebase && git push && break
+            git pull --rebase && git push && ok=1 && break
             echo "推送失敗，重試 ($i)"
             sleep 5
           done
+          if [ "$ok" != "1" ]; then
+            echo "::error::推送失敗 3 次，放棄（請檢查 repo 的 Actions workflow permissions 設定）"
+            exit 1
+          fi
