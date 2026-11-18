@@ -18,6 +18,16 @@ jobs:
           TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
         run: python3 tools/travel/explore_bus_tra.py
 
+  check-bus-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 量測公車資料量
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: python3 tools/travel/check_bus_size.py
+
   gtfs-metro:
     runs-on: ubuntu-latest
     steps:
