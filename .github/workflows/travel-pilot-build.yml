@@ -8,6 +8,11 @@ permissions:
                    # 只有讀取權限，上一次跑就是因為沒有這行被 GitHub 拒絕推送（denied to
                    # github-actions[bot]），而且重試迴圈的最後一行是 sleep，導致推送失敗
                    # 時整個步驟仍然顯示成功——已經一併修正成失敗時真的讓步驟失敗。
+  actions: write   # 用 GITHUB_TOKEN 自己推的 push 不會觸發「發布網站」那個
+                   # on:push workflow（GitHub 的既定限制：GITHUB_TOKEN 推送不會
+                   # 連鎖觸發其他 workflow，避免無窮迴圈）。這次就是這樣：bin 檔
+                   # 推上去了，但網站沒自動重新發布，要手動補一次 dispatch 才生效。
+                   # 加這個權限是為了讓最後一步可以自己呼叫 API 觸發「發布網站」。
 
 jobs:
   build:
@@ -153,3 +158,9 @@ jobs:
             echo "::error::推送失敗 3 次，放棄（請檢查 repo 的 Actions workflow permissions 設定）"
             exit 1
           fi
+
+      - name: 手動觸發「發布網站」（GITHUB_TOKEN 推送不會自動連鎖觸發其他 workflow）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/workflows/update.yml/dispatches -X POST -f ref=main
