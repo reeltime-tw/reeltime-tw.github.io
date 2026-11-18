@@ -1,0 +1,147 @@
+name: 路程時間-試算影城正式產出（3 間試算影城，半徑 20km）
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出 repo 內容
+        uses: actions/checkout@v4
+
+      - name: 安裝 Java（r5py 依賴的 R5 引擎需要）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: 安裝 Python 套件（r5py 與其依賴）
+        run: |
+          python3 -m pip install --break-system-packages --upgrade pip
+          python3 -m pip install --break-system-packages r5py geopandas shapely pandas
+
+      - name: 下載台灣 OSM 資料並裁切出覆蓋 3 間試算影城 20km 的範圍
+        run: |
+          curl -L --max-time 300 --retry 5 --retry-delay 5 --retry-all-errors \
+            -o taiwan.osm.pbf "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool zip
+          # bbox 覆蓋：信義威秀(25.0353,121.5666)、西門威秀(25.0438,121.5055)、
+          # 新店裕隆城威秀(24.9784,121.5468)，每間外推 20km
+          osmium extract -b 121.30,24.80,121.77,25.22 taiwan.osm.pbf -o pilot.osm.pbf --overwrite
+          ls -la pilot.osm.pbf
+          osmium fileinfo pilot.osm.pbf
+
+      - name: 用自製 scooter.lua 跑 osrm-extract/partition/customize（機車）
+        run: |
+          cp pilot.osm.pbf pilot-scooter.osm.pbf
+          docker run --rm -v "$PWD:/data" -v "$PWD/tools/travel/osrm:/profiles" osrm/osrm-backend:latest \
+            osrm-extract -p /profiles/scooter.lua /data/pilot-scooter.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-partition /data/pilot-scooter.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-customize /data/pilot-scooter.osrm
+
+      - name: 用內建 car.lua 跑 osrm-extract/partition/customize（開車）
+        run: |
+          cp pilot.osm.pbf pilot-car.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-extract -p /opt/car.lua /data/pilot-car.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-partition /data/pilot-car.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-customize /data/pilot-car.osrm
+
+      - name: 用內建 foot.lua 跑 osrm-extract/partition/customize（走路）
+        run: |
+          cp pilot.osm.pbf pilot-foot.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-extract -p /opt/foot.lua /data/pilot-foot.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-partition /data/pilot-foot.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-customize /data/pilot-foot.osrm
+
+      - name: 啟動 3 個 osrm-routed（car/scooter/foot）
+        run: |
+          docker run -d --name osrm-car -v "$PWD:/data" -p 5000:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld --max-table-size 10000 /data/pilot-car.osrm
+          docker run -d --name osrm-scooter -v "$PWD:/data" -p 5001:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld --max-table-size 10000 /data/pilot-scooter.osrm
+          docker run -d --name osrm-foot -v "$PWD:/data" -p 5002:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld --max-table-size 10000 /data/pilot-foot.osrm
+          sleep 8
+          docker logs osrm-car --tail 20
+          docker logs osrm-scooter --tail 20
+          docker logs osrm-foot --tail 20
+
+      - name: 對 3 間試算影城算 OSRM 網格（car/scooter/foot，半徑 20km）
+        run: |
+          mkdir -p tmp
+          python3 tools/travel/compute_osrm_grid.py 25.0353 121.5666 20 tmp/osrm_信義威秀.csv --car-port 5000 --scooter-port 5001 --foot-port 5002
+          python3 tools/travel/compute_osrm_grid.py 25.0438 121.5055 20 tmp/osrm_西門威秀.csv --car-port 5000 --scooter-port 5001 --foot-port 5002
+          python3 tools/travel/compute_osrm_grid.py 24.9784 121.5468 20 tmp/osrm_新店裕隆城威秀.csv --car-port 5000 --scooter-port 5001 --foot-port 5002
+
+      - name: 停止 OSRM 容器
+        if: always()
+        run: docker stop osrm-car osrm-scooter osrm-foot 2>/dev/null || true
+
+      - name: 產生捷運 GTFS（TRTC）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_metro.py TRTC
+          python3 tools/travel/validate_gtfs.py gtfs_out/metro
+
+      - name: 產生公車 GTFS（3 間試算影城方圓 2 公里）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_bus.py
+          python3 tools/travel/validate_gtfs.py gtfs_out/bus
+
+      - name: 把 GTFS 資料夾壓成 zip（r5py 吃 zip）
+        run: |
+          (cd gtfs_out/metro && zip -q -r ../metro.zip .)
+          (cd gtfs_out/bus && zip -q -r ../bus.zip .)
+
+      - name: 對 3 間試算影城算大眾運輸網格（r5py，半徑 20km）
+        run: |
+          python3 tools/travel/compute_transit_grid.py pilot.osm.pbf 25.0353 121.5666 20 tmp/transit_信義威秀.csv gtfs_out/metro.zip gtfs_out/bus.zip
+          python3 tools/travel/compute_transit_grid.py pilot.osm.pbf 25.0438 121.5055 20 tmp/transit_西門威秀.csv gtfs_out/metro.zip gtfs_out/bus.zip
+          python3 tools/travel/compute_transit_grid.py pilot.osm.pbf 24.9784 121.5468 20 tmp/transit_新店裕隆城威秀.csv gtfs_out/metro.zip gtfs_out/bus.zip
+
+      - name: 打包成 docs/travel/{cinemaId}.bin
+        run: |
+          mkdir -p docs/travel
+          python3 tools/travel/pack_bin.py "vs-台北信義威秀影城" tmp/osrm_信義威秀.csv tmp/transit_信義威秀.csv "docs/travel/vs-台北信義威秀影城.bin"
+          python3 tools/travel/pack_bin.py "vs-台北西門威秀影城" tmp/osrm_西門威秀.csv tmp/transit_西門威秀.csv "docs/travel/vs-台北西門威秀影城.bin"
+          python3 tools/travel/pack_bin.py "vs-新店裕隆城威秀影城" tmp/osrm_新店裕隆城威秀.csv tmp/transit_新店裕隆城威秀.csv "docs/travel/vs-新店裕隆城威秀影城.bin"
+          python3 - <<'PYEOF'
+          import json, datetime
+          ids = ["vs-台北信義威秀影城", "vs-台北西門威秀影城", "vs-新店裕隆城威秀影城"]
+          out = {
+              "computedAt": datetime.date.today().isoformat(),
+              "radiusKm": 20,
+              "cinemas": ids,
+              "note": "試算階段：只有這 3 間試算影城有精確路程時間表，其餘影城仍用直線距離粗估。",
+          }
+          with open("docs/travel/index.json", "w", encoding="utf-8") as f:
+              json.dump(out, f, ensure_ascii=False, indent=2)
+          PYEOF
+          ls -la docs/travel/
+
+      - name: Commit 並推送（先 pull --rebase，衝突重試最多 3 次）
+        run: |
+          git config user.name "tw-cinema-bot"
+          git config user.email "tw-cinema-bot@users.noreply.github.com"
+          git add docs/travel/
+          if git diff --cached --quiet; then
+            echo "沒有變更，跳過 commit"
+            exit 0
+          fi
+          git commit -m "路程時間：產出 3 間試算影城的精確時間表（半徑 20km）
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Xk3ci6XGRZUEafyUGjrBrm"
+          for i in 1 2 3; do
+            git pull --rebase && git push && break
+            echo "推送失敗，重試 ($i)"
+            sleep 5
+          done
