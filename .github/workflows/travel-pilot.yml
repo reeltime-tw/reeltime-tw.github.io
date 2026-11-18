@@ -1,0 +1,51 @@
+name: 路程計算-試算（開發階段）
+on:
+  workflow_dispatch:
+    inputs:
+      operators:
+        description: 捷運代碼，逗號分隔
+        default: TRTC
+        required: false
+
+jobs:
+  gtfs-metro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 轉換 TDX 捷運資料成 GTFS
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+          OPS: ${{ inputs.operators }}
+        run: |
+          IFS=',' read -ra OPARR <<< "$OPS"
+          python3 tools/travel/tdx2gtfs_metro.py "${OPARR[@]}"
+
+      - name: 驗證輸出的 GTFS
+        run: python3 tools/travel/validate_gtfs_metro.py gtfs_out/metro
+
+      - name: 列出並印出部分內容供人工檢查
+        run: |
+          echo "--- stops.txt（前 5 行）---"
+          head -6 gtfs_out/metro/stops.txt
+          echo "--- routes.txt ---"
+          cat gtfs_out/metro/routes.txt
+          echo "--- calendar.txt ---"
+          cat gtfs_out/metro/calendar.txt
+          echo "--- frequencies.txt（前 10 行）---"
+          head -11 gtfs_out/metro/frequencies.txt
+          echo "--- stop_times.txt 筆數與前 5 行 ---"
+          wc -l gtfs_out/metro/stop_times.txt
+          head -6 gtfs_out/metro/stop_times.txt
+
+      - name: 壓成 zip 並打包成 artifact（體積小才上傳，方便之後下載比對）
+        run: |
+          cd gtfs_out/metro && zip -r ../../metro-gtfs.zip . && cd -
+          ls -la metro-gtfs.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: metro-gtfs
+          path: metro-gtfs.zip
+          retention-days: 14
