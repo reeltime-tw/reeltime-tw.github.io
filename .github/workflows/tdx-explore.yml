@@ -37,26 +37,20 @@ jobs:
             curl -s --max-time 30 -H "authorization: Bearer $TOKEN" "$2" -o "sample/$1"
             echo "=== $1 ($(stat -c%s "sample/$1" 2>/dev/null || echo 0) bytes) ==="
             python3 tools/travel/inspect_json.py "sample/$1"
+            sleep 2
           }
           get station.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/$OP?%24format=JSON"
           get stationofline.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/StationOfLine/$OP?%24format=JSON"
           get s2s.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/S2STravelTime/$OP?%24format=JSON"
           get frequency.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Frequency/$OP?%24format=JSON"
-          get firstlast.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/FirstLastTimetable/$OP?%24format=JSON"
 
-      - name: 抓台鐵、公車樣本
-        env:
-          TOKEN: ${{ steps.auth.outputs.token }}
+      - name: 完整印出 s2s.json 與 frequency.json（不截斷）
         run: |
-          get () {
-            curl -s --max-time 30 -H "authorization: Bearer $TOKEN" "$2" -o "sample/$1"
-            echo "=== $1 ($(stat -c%s "sample/$1" 2>/dev/null || echo 0) bytes) ==="
-            python3 tools/travel/inspect_json.py "sample/$1"
-          }
-          get tra_station.json "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/Station?%24format=JSON"
-          get bus_route_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/Route/City/Taipei?%24format=JSON&%24top=3"
-          get bus_stopofroute_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/StopOfRoute/City/Taipei?%24format=JSON&%24top=3"
-          get bus_schedule_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/Schedule/City/Taipei?%24format=JSON&%24top=3"
+          echo "##### FULL s2s.json #####"
+          cat sample/s2s.json
+          echo ""
+          echo "##### FULL frequency.json #####"
+          cat sample/frequency.json
 
       - name: 上傳原始樣本（供下載檢查完整欄位）
         uses: actions/upload-artifact@v4
