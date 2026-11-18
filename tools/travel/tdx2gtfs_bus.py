@@ -79,7 +79,9 @@ def build_gtfs(cities: list[str], out_dir: Path, cinemas: list[tuple[float, floa
 
         schedule_by_subroute = {}
         for s in data["schedule"]:
-            schedule_by_subroute.setdefault((s["SubRouteID"], s["Direction"]), []).append(s)
+            key = (s["SubRouteID"], s["Direction"])
+            for freq in s.get("Frequencys") or []:
+                schedule_by_subroute.setdefault(key, []).append(freq)
 
         for sor in data["stop_of_route"]:
             stops_list = sor.get("Stops") or []

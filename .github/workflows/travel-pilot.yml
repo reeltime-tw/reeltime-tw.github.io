@@ -7,6 +7,8 @@ on:
         default: TRTC
         required: false
 
+# 所有 job 都會打 TDX，刻意串行（needs）而不平行，避免同帳號同時打多個請求
+# 互相觸發 rate limit。
 jobs:
   explore-bus-tra:
     runs-on: ubuntu-latest
@@ -19,6 +21,7 @@ jobs:
         run: python3 tools/travel/explore_bus_tra.py
 
   check-bus-size:
+    needs: explore-bus-tra
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +31,40 @@ jobs:
           TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
         run: python3 tools/travel/check_bus_size.py
 
+  gtfs-metro:
+    needs: check-bus-size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 轉換 TDX 捷運資料成 GTFS
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+          OPS: ${{ inputs.operators }}
+        run: |
+          IFS=',' read -ra OPARR <<< "$OPS"
+          python3 tools/travel/tdx2gtfs_metro.py "${OPARR[@]}"
+
+      - name: 驗證輸出的 GTFS
+        run: python3 tools/travel/validate_gtfs.py gtfs_out/metro
+
+      - name: 列出並印出部分內容供人工檢查
+        run: |
+          echo "--- stops.txt（前 5 行）---"
+          head -6 gtfs_out/metro/stops.txt
+          echo "--- routes.txt ---"
+          cat gtfs_out/metro/routes.txt
+          echo "--- calendar.txt ---"
+          cat gtfs_out/metro/calendar.txt
+          echo "--- frequencies.txt（前 10 行）---"
+          head -11 gtfs_out/metro/frequencies.txt
+          echo "--- stop_times.txt 筆數與前 5 行 ---"
+          wc -l gtfs_out/metro/stop_times.txt
+          head -6 gtfs_out/metro/stop_times.txt
+
   gtfs-bus:
+    needs: gtfs-metro
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,45 +88,3 @@ jobs:
           head -6 gtfs_out/bus/frequencies.txt
           echo "--- calendar.txt ---"
           cat gtfs_out/bus/calendar.txt
-
-  gtfs-metro:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 轉換 TDX 捷運資料成 GTFS
-        env:
-          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
-          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
-          OPS: ${{ inputs.operators }}
-        run: |
-          IFS=',' read -ra OPARR <<< "$OPS"
-          python3 tools/travel/tdx2gtfs_metro.py "${OPARR[@]}"
-
-      - name: 驗證輸出的 GTFS
-        run: python3 tools/travel/validate_gtfs_metro.py gtfs_out/metro
-
-      - name: 列出並印出部分內容供人工檢查
-        run: |
-          echo "--- stops.txt（前 5 行）---"
-          head -6 gtfs_out/metro/stops.txt
-          echo "--- routes.txt ---"
-          cat gtfs_out/metro/routes.txt
-          echo "--- calendar.txt ---"
-          cat gtfs_out/metro/calendar.txt
-          echo "--- frequencies.txt（前 10 行）---"
-          head -11 gtfs_out/metro/frequencies.txt
-          echo "--- stop_times.txt 筆數與前 5 行 ---"
-          wc -l gtfs_out/metro/stop_times.txt
-          head -6 gtfs_out/metro/stop_times.txt
-
-      - name: 壓成 zip 並打包成 artifact（體積小才上傳，方便之後下載比對）
-        run: |
-          cd gtfs_out/metro && zip -r ../../metro-gtfs.zip . && cd -
-          ls -la metro-gtfs.zip
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: metro-gtfs
-          path: metro-gtfs.zip
-          retention-days: 14
