@@ -136,10 +136,7 @@ jobs:
             echo "沒有變更，跳過 commit"
             exit 0
           fi
-          git commit -m "路程時間：產出 3 間試算影城的精確時間表（半徑 20km）
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01Xk3ci6XGRZUEafyUGjrBrm"
+          git commit -m "$(printf '路程時間：產出 3 間試算影城的精確時間表（半徑 20km）\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01Xk3ci6XGRZUEafyUGjrBrm')"
           for i in 1 2 3; do
             git pull --rebase && git push && break
             echo "推送失敗，重試 ($i)"
