@@ -1,0 +1,56 @@
+name: 路程計算-連線測試
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 測試對外連線
+        run: |
+          set +e
+          echo "## 連線測試結果" >> "$GITHUB_STEP_SUMMARY"
+          probe () {
+            local name="$1" url="$2"
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -L "$url")
+            echo "- $name ($url): HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+            echo "$name -> $code"
+          }
+          probe "Geofabrik 台灣 OSM" "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
+          probe "TDX 入口網" "https://tdx.transportdata.tw/"
+          probe "TDX 登入端點" "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
+          probe "Maven Central" "https://repo1.maven.org/maven2/"
+          probe "PyPI" "https://pypi.org/simple/"
+          probe "Docker Hub (OSRM image)" "https://hub.docker.com/v2/repositories/osrm/osrm-backend/"
+          probe "Conda-forge (r5py 依賴用)" "https://conda.anaconda.org/conda-forge/"
+
+      - name: 測試 TDX 金鑰（若已設定 Secrets）
+        if: ${{ secrets.TDX_CLIENT_ID != '' }}
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          resp=$(curl -s -w '\n%{http_code}' --max-time 20 -X POST \
+            "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token" \
+            -H "content-type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=${TDX_CLIENT_ID}&client_secret=${TDX_CLIENT_SECRET}")
+          code=$(echo "$resp" | tail -1)
+          echo "TDX 登入測試: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" = "200" ]; then
+            echo "✅ TDX 金鑰可用，成功拿到 token" >> "$GITHUB_STEP_SUMMARY"
+            # 用 token 試打一個捷運 API
+            token=$(echo "$resp" | head -1 | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+            apicode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+              -H "authorization: Bearer $token" \
+              "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/TRTC?%24format=JSON")
+            echo "台北捷運站點 API: HTTP $apicode" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ TDX 金鑰測試失敗，回應：" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$resp" | head -1 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: 尚未設定 TDX Secrets 時的提示
+        if: ${{ secrets.TDX_CLIENT_ID == '' }}
+        run: echo "ℹ️ 尚未設定 TDX_CLIENT_ID / TDX_CLIENT_SECRET，略過金鑰測試。" >> "$GITHUB_STEP_SUMMARY"
