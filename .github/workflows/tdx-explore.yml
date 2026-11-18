@@ -1,0 +1,88 @@
+name: TDX-資料格式探索（開發用，非正式流程）
+on:
+  workflow_dispatch:
+    inputs:
+      operator:
+        description: 捷運代碼（TRTC/KRTC/TYMC... ）
+        default: TRTC
+        required: false
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得 TDX token
+        id: auth
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          token=$(curl -s --max-time 20 -X POST \
+            "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token" \
+            -H "content-type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=${TDX_CLIENT_ID}&client_secret=${TDX_CLIENT_SECRET}" \
+            | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: 抓捷運相關 API 樣本
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+          OP: ${{ inputs.operator }}
+        run: |
+          mkdir -p sample
+          get () { # $1=輸出檔名 $2=url
+            curl -s --max-time 30 -H "authorization: Bearer $TOKEN" "$2" -o "sample/$1"
+            echo "=== $1 ($(stat -c%s sample/$1 2>/dev/null || echo 0) bytes) ==="
+            python3 -c "
+import json
+try:
+    d = json.load(open('sample/$1'))
+    if isinstance(d, list):
+        print(f'list, len={len(d)}')
+        print(json.dumps(d[0], ensure_ascii=False, indent=1)[:1500] if d else '(empty)')
+    else:
+        print(json.dumps(d, ensure_ascii=False, indent=1)[:1500])
+except Exception as e:
+    print('解析失敗:', e)
+    print(open('sample/$1').read()[:500])
+"
+          }
+          get station.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/$OP?%24format=JSON"
+          get stationofline.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/StationOfLine/$OP?%24format=JSON"
+          get s2s.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/S2STravelTime/$OP?%24format=JSON"
+          get frequency.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Frequency/$OP?%24format=JSON"
+          get firstlast.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/FirstLastTimetable/$OP?%24format=JSON"
+
+      - name: 抓台鐵、公車樣本
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          get () {
+            curl -s --max-time 30 -H "authorization: Bearer $TOKEN" "$2" -o "sample/$1"
+            echo "=== $1 ($(stat -c%s sample/$1 2>/dev/null || echo 0) bytes) ==="
+            python3 -c "
+import json
+try:
+    d = json.load(open('sample/$1'))
+    if isinstance(d, list):
+        print(f'list, len={len(d)}')
+        print(json.dumps(d[0], ensure_ascii=False, indent=1)[:1500] if d else '(empty)')
+    else:
+        print(json.dumps(d, ensure_ascii=False, indent=1)[:1500])
+except Exception as e:
+    print('解析失敗:', e)
+    print(open('sample/$1').read()[:500])
+"
+          }
+          get tra_station.json "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/Station?%24format=JSON"
+          get bus_route_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/Route/City/Taipei?%24format=JSON&%24top=3"
+          get bus_stopofroute_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/StopOfRoute/City/Taipei?%24format=JSON&%24top=3"
+          get bus_schedule_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/Schedule/City/Taipei?%24format=JSON&%24top=3"
+
+      - name: 上傳原始樣本（供下載檢查完整欄位）
+        uses: actions/upload-artifact@v4
+        with:
+          name: tdx-samples
+          path: sample/
+          retention-days: 7
