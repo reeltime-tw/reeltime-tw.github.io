@@ -6,6 +6,9 @@ jobs:
   explore:
     runs-on: ubuntu-latest
     steps:
+      - name: 取出 repo 內容（需要 tools/travel/osrm/scooter.lua）
+        uses: actions/checkout@v4
+
       - name: 確認 docker 版本與能否拉 osrm-backend 映像
         run: |
           docker --version
