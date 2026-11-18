@@ -108,8 +108,8 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 3. ~~寫網格程式（Python ＋ JS）與一致性測試~~ ✅ 已完成：`tools/travel/grid.py`、`tools/travel/grid.mjs`、`test/travel_grid.mjs`（1000 點隨機驗證全部一致）。
 4. **捷運 GTFS 轉換：已完成並通過真實資料驗證**（見下「捷運 GTFS 轉換 — 完成狀態」）。
 5. ~~公車 GTFS 轉換~~ ✅ 已完成（見下「公車 GTFS 轉換 — 完成狀態」）。台鐵尚未轉換（3 間試算影城都不緊鄰台鐵站，優先度較低，先跳過）。
-5b. **OSRM（開車／機車／步行）：已驗證可行（見下「OSRM 路網計算 — 完成狀態」）**。r5py（大眾運輸＋步行矩陣）尚未開始，接下來進行。
-6. 驗證比對 Google 地圖，校正塞車係數；不合格就回第 4–5 步。
+5b. ~~OSRM（開車／機車／步行）與 r5py（大眾運輸＋步行）~~ ✅ 兩條計算路徑都已驗證可行（見下「OSRM 路網計算 — 完成狀態」、「r5py（大眾運輸）」）。目前都還是「台北小範圍」規模的開發探索腳本，還沒擴大到全台 102 間影城的正式流程。
+6. ⏳ **下一步**：驗證比對 Google 地圖，校正塞車係數；不合格就回第 4–5 步。
 7. App 端查表、退回粗估、隱私面板文字、測試。
 8. 校正 17 間 approx 座標。
 9. 擴到全台，補其他縣市 TDX 資料，寫 `COVERAGE.md`。
@@ -144,7 +144,18 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 - **根因（`tdx2gtfs_metro.py` 和 `tdx2gtfs_bus.py` 都有同一個 bug）**：GTFS 規定一個 trip 只能對應一個 `service_id`，所以轉換程式會把「同一個 pattern trip × 每個服務日」展開成各自獨立的 `new_trip_id`（例如 `{trip_id}__{svc_id}`）。但**同一個 (trip_id, service_id) 常常有多個 Headway／schedule 時間段**（例如尖峰、離峰班距不同），這些時段應該各自在 `frequencies.txt` 多一筆，但 trip 本身（`trips.txt`、`stop_times.txt`）只該有一筆——程式卻對每個時段都 append 一次 trip／stop_times，造成同一個 `trip_id` 在 `trips.txt` 裡出現好幾次，GTFS 讀取器（r5py 用的 `com.conveyal.gtfs`）認 `trip_id` 是主鍵，直接報錯。
 - **已修正**：兩支程式都改成用 `seen_trip_ids` 集合去重——`trips.txt`/`stop_times.txt` 每個 `new_trip_id` 只 append 一次，`frequencies.txt` 維持每個時段各一筆（這是對的，GTFS 允許同一個 trip 有多筆 frequencies，只要時間區間不重疊）。
 - `validate_gtfs.py` 也加了「trips.txt 有沒有重複 trip_id」的檢查，之後同類問題能在跑 r5py 之前就先被抓到，不用等 Java 丟例外才發現。
-- **下一步**：重新跑 `r5py-explore.yml`，確認 `TransportNetwork` 能建立成功、`TravelTimeMatrixComputer` 算出的 5 個取樣起點→3 間試算影城時間矩陣數字合理（跟捷運/公車的實際通勤時間比對，不需要到 Google 地圖那麼精確，先看數量級對不對）。
+- **已驗證通過**：修好 trip_id 重複的 bug 之後重跑，`TransportNetwork` 建立成功。接著踩到第二個問題：安裝的 r5py 1.1.7 **沒有** `TravelTimeMatrixComputer`（那是舊版／網路上教學常見的寫法）——查了官方 reference 文件，1.x 版的 API 改成直接建構 `r5py.TravelTimeMatrix(transport_network, origins=..., destinations=..., departure=..., transport_modes=...)`，它本身就是 `pandas.DataFrame` 的子類別，建構時就算好結果，不用再呼叫 `.compute_travel_times()`。`build_matrix.py` 已改成「先試新版 API，沒有才退回舊版」，兩種安裝都能跑。
+  **真實結果**（2026-11-18，平日早上 8:30 出發，大眾運輸＋步行）：
+  | 起點 | 信義威秀 | 西門威秀 | 新店裕隆城威秀 |
+  |---|---|---|---|
+  | 台北車站 | 34 分 | 17 分 | 43 分 |
+  | 西門站 | 35 分 | 6 分 | 36 分 |
+  | 市政府站 | 12 分 | 26 分 | 53 分 |
+  | 新店站 | 58 分 | 66 分 | 26 分 |
+  | 公館站 | 37 分 | 36 分 | 27 分 |
+
+  數字全部合理（西門站→西門威秀 6 分、市政府站→信義威秀 12 分這種「本來就很近」的組合時間最短，符合常識），**OSRM（car/scooter/foot）＋ r5py（transit+walk）兩條計算路徑都已驗證可行**。
+- **下一步**：進入「驗證比對 Google 地圖」階段——針對 3 間試算影城各抓約 8 個真實起點、不同時段，人工在 Google 地圖查時間，跟這裡算出來的數字比對誤差（門檻見下方「驗證」章節）。通過後才動手把範圍從「台北小範圍 OSM + TRTC 捷運 + 雙北公車」擴大到全台（全台 OSM、全部捷運系統、全部公車業者、台鐵），並把 `osrm-explore.yml`／`r5py-explore.yml` 這兩支開發用腳本整理成正式的 `.github/workflows/travel.yml`，對 102 間影城產生 `docs/travel/{cinemaId}.bin`。
 
 ## 公車／台鐵資料格式探索結果（2026-11-18）
 
