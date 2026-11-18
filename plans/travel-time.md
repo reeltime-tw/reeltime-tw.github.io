@@ -122,6 +122,16 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 - `.github/workflows/travel-pilot.yml`：在 Actions 上跑 `tdx2gtfs_metro.py TRTC`，**真實資料測試通過**：122 站、11 條路線、75 個 pattern trip、75 筆班距，驗證全部通過。
 - `.github/workflows/tdx-explore.yml`：開發輔助用，探索 TDX API 格式，之後可刪除。
 
+## 公車／台鐵資料格式探索結果（2026-11-18）
+
+- **公車 `Bus/Route/City/{city}`**：每條路線下有 `SubRoutes`（去程/返程用 `Direction` 0/1 區分），含首末班時間。
+- **公車 `Bus/StopOfRoute/City/{city}`**：依 `SubRouteID`+`Direction` 給完整站序與座標，但**沒有站間時間**。
+- **公車 `Bus/S2STravelTime/City/{city}` 回 404（Resource Not Found）**：這個端點對公車不適用（可能只有部分特殊路線或需要不同參數）。**對策**：用 `StopOfRoute` 的站點座標算站間直線距離，乘上繞路係數，除以假設平均速度（市區公車含停靠約 18–20 km/h）來估算站間時間，取代直接拿到的運行時間。沒有真正運行時間準，但比純直線距離估全程準，因為至少路徑是真的（沿站牌走，不是直線穿越建築物）。
+- **公車 `Bus/Schedule/City/{city}`**：`Frequencys` 陣列，**每筆只代表單一天**（`ServiceDay` 是 0/1 整數、每個鍵一天，不像捷運是一次給整組 7 天），轉換程式要注意這個差異，不能直接套用 `tdx2gtfs_metro.py` 的 `service_id_of()`。
+- **台鐵 `Rail/TRA/Station`**：站點座標，正常。
+- **台鐵 `Rail/TRA/DailyTrainTimetable/Today`**：**當天完整時刻表**，每班車有明確到站/離站時間，資料品質最好，但只能拿「今天」或指定日期，不是一份固定時刻表樣板——换算 GTFS 時要注意：平日/假日班次不同，要抓多個代表日期（例如一個平日＋一個週末）才能覆蓋完整服務模式，不能只抓一天當全部。
+- **台北市公車路線數量大**（光是前 3 筆就看到數千條路線的量級），全部抓取會消耗大量 TDX 呼叫額度與時間。**試算階段建議**：只抓經過 3 間試算影城 2 公里內的路線（用站點座標過濾，而不是一次抓全部台北市公車）。
+
 ## Actions 的侷限（已驗證）
 
 - `gh workflow run` 在這個 Claude Code 環境會先查 GraphQL 找預設分支，而 CCR proxy 擋 GraphQL（HTTP 403）。**改用** `gh api repos/{owner}/{repo}/actions/workflows/{file}/dispatches -X POST -f ref=main` 觸發。
