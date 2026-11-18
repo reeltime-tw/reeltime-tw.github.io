@@ -57,14 +57,27 @@ def main():
     # 平日早上出發，上班通勤時段比較有代表性
     departure = datetime.datetime(2026, 11, 19, 8, 30)  # 2026-11-19 是週四
 
-    computer = r5py.TravelTimeMatrixComputer(
-        network,
-        origins=origins,
-        destinations=destinations,
-        departure=departure,
-        transport_modes=[r5py.TransportMode.TRANSIT, r5py.TransportMode.WALK],
-    )
-    matrix = computer.compute_travel_times()
+    # r5py 1.x 的 API：TravelTimeMatrix 本身就是 pandas.DataFrame 的子類別，
+    # 建構時直接算好結果，不像舊版（r5py-fork／早期教學常見的寫法）要另外
+    # 呼叫 TravelTimeMatrixComputer(...).compute_travel_times()。
+    # 這裡先試新版 API，找不到才退回舊版寫法，兩種安裝環境都能跑。
+    if hasattr(r5py, "TravelTimeMatrix"):
+        matrix = r5py.TravelTimeMatrix(
+            network,
+            origins=origins,
+            destinations=destinations,
+            departure=departure,
+            transport_modes=[r5py.TransportMode.TRANSIT, r5py.TransportMode.WALK],
+        )
+    else:
+        computer = r5py.TravelTimeMatrixComputer(
+            network,
+            origins=origins,
+            destinations=destinations,
+            departure=departure,
+            transport_modes=[r5py.TransportMode.TRANSIT, r5py.TransportMode.WALK],
+        )
+        matrix = computer.compute_travel_times()
 
     pd.set_option("display.max_rows", None)
     pd.set_option("display.width", 200)
