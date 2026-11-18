@@ -8,6 +8,16 @@ on:
         required: false
 
 jobs:
+  explore-bus-tra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 探索公車／台鐵資料格式
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: python3 tools/travel/explore_bus_tra.py
+
   gtfs-metro:
     runs-on: ubuntu-latest
     steps:
