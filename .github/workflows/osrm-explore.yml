@@ -24,10 +24,10 @@ jobs:
         run: |
           docker run --rm --entrypoint sh osrm/osrm-backend:latest -c "cat /opt/car.lua 2>/dev/null"
 
-      - name: 下載台灣 OSM 資料（檔案較大，放寬時間限制）
+      - name: 下載台灣 OSM 資料（檔案較大，放寬時間限制＋重試）
         run: |
-          curl -L --max-time 300 -o taiwan.osm.pbf \
-            "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
+          curl -L --max-time 300 --retry 5 --retry-delay 5 --retry-all-errors \
+            -o taiwan.osm.pbf "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
           ls -la taiwan.osm.pbf
 
       - name: 用 osmium 裁切出台北小範圍（先確認 osmium 可用）
@@ -47,7 +47,7 @@ jobs:
             osrm-customize /data/taipei-small.osrm
           ls -la taipei-small.osrm*
 
-      - name: 啟動 osrm-routed 並測一次 table API（台北車站→信義威秀）
+      - name: 啟動 osrm-routed 並測一次 table API（台北車站→信義威秀，car）
         run: |
           docker run -d --name osrm-test -v "$PWD:/data" -p 5000:5000 osrm/osrm-backend:latest \
             osrm-routed --algorithm mld /data/taipei-small.osrm
@@ -55,3 +55,23 @@ jobs:
           curl -s "http://localhost:5000/table/v1/driving/121.5171,25.0478;121.5666,25.0353?annotations=duration" | head -c 1000
           docker logs osrm-test
           docker stop osrm-test
+
+      - name: 用裁切後的小範圍跑 osrm-extract（自製 scooter.lua）驗證流程可行
+        run: |
+          cp taipei-small.osm.pbf taipei-small-scooter.osm.pbf
+          docker run --rm -v "$PWD:/data" -v "$PWD/tools/travel/osrm:/profiles" osrm/osrm-backend:latest \
+            osrm-extract -p /profiles/scooter.lua /data/taipei-small-scooter.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-partition /data/taipei-small-scooter.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-customize /data/taipei-small-scooter.osrm
+          ls -la taipei-small-scooter.osrm*
+
+      - name: 啟動 osrm-routed 並測一次 table API（台北車站→信義威秀，scooter）
+        run: |
+          docker run -d --name osrm-test-scooter -v "$PWD:/data" -p 5001:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld /data/taipei-small-scooter.osrm
+          sleep 5
+          curl -s "http://localhost:5001/table/v1/driving/121.5171,25.0478;121.5666,25.0353?annotations=duration" | head -c 1000
+          docker logs osrm-test-scooter
+          docker stop osrm-test-scooter
