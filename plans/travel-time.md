@@ -99,7 +99,7 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 ## 執行進度
 
 - ✅ **2026-11-18**：在 `.github/workflows/travel-probe.yml` 做連線測試（`gh api …/dispatches` 觸發，無法用 `gh workflow run`，因為會先查 GraphQL 預設分支，CCR 環境擋 GraphQL）。結果：Geofabrik OSM 200、TDX 入口網 200、TDX 登入端點 405（端點存在，GET 本來就該 405）、Maven Central 200、PyPI 200、Docker Hub 200、conda-forge 200。**Actions 連得到所有需要的資料來源**，不用改成使用者電腦下載。
-- ⏳ **卡住的地方**：需要使用者的 TDX Client ID / Secret 才能繼續測試 TDX API 本身能不能抓到資料（不只是連得到首頁）。這一步**必須由使用者操作**，Claude 不能代為註冊或建立 Secrets（`gh secret list/set` 在這個環境被 CCR proxy 擋下，HTTP 403）。
+- ✅ **2026-11-18**：使用者已設定 `TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`（第一次只設了 Secret 沒設 ID，補上後成功）。TDX 登入測試 HTTP 200，`Rail/Metro/Station/TRTC`（台北捷運站點）API 回 HTTP 200。**TDX 金鑰可用，開始進入資料轉換階段**。
 
 ## 執行順序（任務清單）
 
