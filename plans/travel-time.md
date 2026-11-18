@@ -96,10 +96,15 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 - Job 3 `publish`：合併結果，commit 到 `docs/travel/`（先 `git pull --rebase`），觸發現有「發布網站」。
 - 注意：這個 workflow 會 push 到 main，與使用者電腦每日 push 可能衝突。push 失敗時要重試 rebase，最多 3 次。
 
+## 執行進度
+
+- ✅ **2026-11-18**：在 `.github/workflows/travel-probe.yml` 做連線測試（`gh api …/dispatches` 觸發，無法用 `gh workflow run`，因為會先查 GraphQL 預設分支，CCR 環境擋 GraphQL）。結果：Geofabrik OSM 200、TDX 入口網 200、TDX 登入端點 405（端點存在，GET 本來就該 405）、Maven Central 200、PyPI 200、Docker Hub 200、conda-forge 200。**Actions 連得到所有需要的資料來源**，不用改成使用者電腦下載。
+- ⏳ **卡住的地方**：需要使用者的 TDX Client ID / Secret 才能繼續測試 TDX API 本身能不能抓到資料（不只是連得到首頁）。這一步**必須由使用者操作**，Claude 不能代為註冊或建立 Secrets（`gh secret list/set` 在這個環境被 CCR proxy 擋下，HTTP 403）。
+
 ## 執行順序（任務清單）
 
-1. **使用者**：註冊 TDX、建立兩個 GitHub Secrets（給他逐步、可直接照做的說明，含網址）。
-2. 在 Actions 上做連線測試：geofabrik、TDX token、TDX 一個捷運 API。
+1. **使用者**：註冊 TDX、建立兩個 GitHub Secrets（給他逐步、可直接照做的說明，含網址）。← **目前卡在這一步，等使用者操作**
+2. ~~在 Actions 上做連線測試~~（已完成，見上「執行進度」）。
 3. 寫 `tdx2gtfs.py`，先做台北捷運＋台北／新北公車＋台鐵；用 `gtfs-kit` 或 r5py 載入驗證格式。
 4. 寫網格程式（Python ＋ JS）與一致性測試。
 5. 寫 r5py 計算程式與 OSRM 計算程式（含 `scooter.lua`），在 Actions 上只跑 3 間試算影城。
