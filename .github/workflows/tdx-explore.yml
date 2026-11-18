@@ -11,6 +11,8 @@ jobs:
   explore:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: 取得 TDX token
         id: auth
         env:
@@ -31,22 +33,10 @@ jobs:
           OP: ${{ inputs.operator }}
         run: |
           mkdir -p sample
-          get () { # $1=輸出檔名 $2=url
+          get () {
             curl -s --max-time 30 -H "authorization: Bearer $TOKEN" "$2" -o "sample/$1"
-            echo "=== $1 ($(stat -c%s sample/$1 2>/dev/null || echo 0) bytes) ==="
-            python3 -c "
-import json
-try:
-    d = json.load(open('sample/$1'))
-    if isinstance(d, list):
-        print(f'list, len={len(d)}')
-        print(json.dumps(d[0], ensure_ascii=False, indent=1)[:1500] if d else '(empty)')
-    else:
-        print(json.dumps(d, ensure_ascii=False, indent=1)[:1500])
-except Exception as e:
-    print('解析失敗:', e)
-    print(open('sample/$1').read()[:500])
-"
+            echo "=== $1 ($(stat -c%s "sample/$1" 2>/dev/null || echo 0) bytes) ==="
+            python3 tools/travel/inspect_json.py "sample/$1"
           }
           get station.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Station/$OP?%24format=JSON"
           get stationofline.json "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/StationOfLine/$OP?%24format=JSON"
@@ -60,20 +50,8 @@ except Exception as e:
         run: |
           get () {
             curl -s --max-time 30 -H "authorization: Bearer $TOKEN" "$2" -o "sample/$1"
-            echo "=== $1 ($(stat -c%s sample/$1 2>/dev/null || echo 0) bytes) ==="
-            python3 -c "
-import json
-try:
-    d = json.load(open('sample/$1'))
-    if isinstance(d, list):
-        print(f'list, len={len(d)}')
-        print(json.dumps(d[0], ensure_ascii=False, indent=1)[:1500] if d else '(empty)')
-    else:
-        print(json.dumps(d, ensure_ascii=False, indent=1)[:1500])
-except Exception as e:
-    print('解析失敗:', e)
-    print(open('sample/$1').read()[:500])
-"
+            echo "=== $1 ($(stat -c%s "sample/$1" 2>/dev/null || echo 0) bytes) ==="
+            python3 tools/travel/inspect_json.py "sample/$1"
           }
           get tra_station.json "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/Station?%24format=JSON"
           get bus_route_tpe.json "https://tdx.transportdata.tw/api/basic/v2/Bus/Route/City/Taipei?%24format=JSON&%24top=3"
