@@ -28,6 +28,31 @@ jobs:
           TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
         run: python3 tools/travel/check_bus_size.py
 
+  gtfs-bus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 轉換 TDX 公車資料成 GTFS（限 3 間試算影城 2 公里內）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: python3 tools/travel/tdx2gtfs_bus.py
+
+      - name: 驗證輸出的 GTFS
+        run: python3 tools/travel/validate_gtfs.py gtfs_out/bus
+
+      - name: 列出部分內容供人工檢查
+        run: |
+          echo "--- routes.txt（前 10 行）---"
+          head -11 gtfs_out/bus/routes.txt
+          echo "--- stops.txt 筆數 ---"
+          wc -l gtfs_out/bus/stops.txt
+          echo "--- frequencies.txt（前 5 行）---"
+          head -6 gtfs_out/bus/frequencies.txt
+          echo "--- calendar.txt ---"
+          cat gtfs_out/bus/calendar.txt
+
   gtfs-metro:
     runs-on: ubuntu-latest
     steps:
