@@ -179,20 +179,28 @@ def build_gtfs(cities: list[str], out_dir: Path, cinemas: list[tuple[float, floa
         stop_times_by_trip.setdefault(st["trip_id"], []).append(st)
     trips_by_id = {t["trip_id"]: t for t in trips_rows}
 
+    # 同一個 (trip_id, service_id) 可能有多筆 schedule（不同時段各自的班距），
+    # 這些都共用同一個 new_trip_id——trips.txt／stop_times.txt 每個 trip_id 只能
+    # 出現一次，只有 frequencies.txt 可以對同一個 trip_id 有多筆。用 set 去重，
+    # 避免重複的 trip/stop_times 列（之前曾因此在 r5py 讀取時報
+    # DuplicateKeyError，跟 tdx2gtfs_metro.py 是同一類問題）。
     final_trips, final_stop_times, final_freq = [], [], []
+    seen_trip_ids = set()
     for fr in frequencies_rows:
         base = trips_by_id[fr["trip_id"]]
         new_trip_id = f"{fr['trip_id']}__{fr['service_id']}"
-        final_trips.append(
-            {"trip_id": new_trip_id, "route_id": base["route_id"], "service_id": fr["service_id"], "direction_id": base["direction_id"]}
-        )
-        for st in stop_times_by_trip.get(fr["trip_id"], []):
-            hh, rem = divmod(st["t"], 3600)
-            mm, ss = divmod(rem, 60)
-            time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
-            final_stop_times.append(
-                {"trip_id": new_trip_id, "arrival_time": time_str, "departure_time": time_str, "stop_id": st["stop_id"], "stop_sequence": st["stop_sequence"]}
+        if new_trip_id not in seen_trip_ids:
+            seen_trip_ids.add(new_trip_id)
+            final_trips.append(
+                {"trip_id": new_trip_id, "route_id": base["route_id"], "service_id": fr["service_id"], "direction_id": base["direction_id"]}
             )
+            for st in stop_times_by_trip.get(fr["trip_id"], []):
+                hh, rem = divmod(st["t"], 3600)
+                mm, ss = divmod(rem, 60)
+                time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
+                final_stop_times.append(
+                    {"trip_id": new_trip_id, "arrival_time": time_str, "departure_time": time_str, "stop_id": st["stop_id"], "stop_sequence": st["stop_sequence"]}
+                )
         final_freq.append({"trip_id": new_trip_id, "start_time": fr["start_time"], "end_time": fr["end_time"], "headway_secs": fr["headway_secs"]})
 
     _write_csv(out_dir / "agency.txt", [{"agency_id": AGENCY_ID, "agency_name": "台灣公車(TDX彙整)", "agency_url": "https://tdx.transportdata.tw/", "agency_timezone": AGENCY_TZ}])

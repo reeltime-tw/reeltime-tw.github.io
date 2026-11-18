@@ -138,6 +138,14 @@ App 用「場次開演 − 提早到 − 中位數時間」推出出發時刻，
 - 步行（foot.lua）尚未測試，但走法跟 car/scooter 一樣（映像內建，不用額外寫 profile），之後驗證階段再一併跑。
 - **下一步**：`osrm-explore.yml` 目前只是開發用探索，正式流程（跑全台 102 間影城）還需要寫一支正式腳本，把裁切範圍從「台北小範圍」換成「全台灣」，對每間影城座標跑 car/scooter/foot 三種 profile 的 table API，輸出結果存起來供「驗證比對 Google 地圖」用。這一步待 r5py（大眾運輸）也完成後再一起做，兩者輸出格式會放在同一個比對腳本裡處理。
 
+## r5py（大眾運輸）— 進行中（2026-11-18）
+
+- 建了 `.github/workflows/r5py-explore.yml`（裝 Java 21、pip 裝 r5py/geopandas/shapely/pandas）＋ `tools/travel/r5/build_matrix.py`，流程一路到「把捷運/公車 GTFS 壓成 zip」都成功，但 `r5py.TransportNetwork(...)` 讀 `metro.zip` 時報 `GtfsFileError: DuplicateKeyError: trips ... field 'trip_id': Duplicate primary key`。
+- **根因（`tdx2gtfs_metro.py` 和 `tdx2gtfs_bus.py` 都有同一個 bug）**：GTFS 規定一個 trip 只能對應一個 `service_id`，所以轉換程式會把「同一個 pattern trip × 每個服務日」展開成各自獨立的 `new_trip_id`（例如 `{trip_id}__{svc_id}`）。但**同一個 (trip_id, service_id) 常常有多個 Headway／schedule 時間段**（例如尖峰、離峰班距不同），這些時段應該各自在 `frequencies.txt` 多一筆，但 trip 本身（`trips.txt`、`stop_times.txt`）只該有一筆——程式卻對每個時段都 append 一次 trip／stop_times，造成同一個 `trip_id` 在 `trips.txt` 裡出現好幾次，GTFS 讀取器（r5py 用的 `com.conveyal.gtfs`）認 `trip_id` 是主鍵，直接報錯。
+- **已修正**：兩支程式都改成用 `seen_trip_ids` 集合去重——`trips.txt`/`stop_times.txt` 每個 `new_trip_id` 只 append 一次，`frequencies.txt` 維持每個時段各一筆（這是對的，GTFS 允許同一個 trip 有多筆 frequencies，只要時間區間不重疊）。
+- `validate_gtfs.py` 也加了「trips.txt 有沒有重複 trip_id」的檢查，之後同類問題能在跑 r5py 之前就先被抓到，不用等 Java 丟例外才發現。
+- **下一步**：重新跑 `r5py-explore.yml`，確認 `TransportNetwork` 能建立成功、`TravelTimeMatrixComputer` 算出的 5 個取樣起點→3 間試算影城時間矩陣數字合理（跟捷運/公車的實際通勤時間比對，不需要到 Google 地圖那麼精確，先看數量級對不對）。
+
 ## 公車／台鐵資料格式探索結果（2026-11-18）
 
 - **公車 `Bus/Route/City/{city}`**：每條路線下有 `SubRoutes`（去程/返程用 `Direction` 0/1 區分），含首末班時間。

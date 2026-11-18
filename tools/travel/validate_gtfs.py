@@ -33,6 +33,18 @@ def main(gtfs_dir: str):
     stop_ids = {s["stop_id"] for s in stops}
     trip_ids = {t["trip_id"] for t in trips}
 
+    # trip_id 是 trips.txt 的主鍵，重複會讓 r5py／其他 GTFS 讀取器直接報錯
+    # DuplicateKeyError（曾經真的在這裡踩過：同一個 trip 有多個班距時段時，
+    # 展開 (trip, service_id) 的程式忘了去重，導致同一個 trip_id 被 append 兩次）
+    seen = set()
+    dup_trip_ids = set()
+    for t in trips:
+        if t["trip_id"] in seen:
+            dup_trip_ids.add(t["trip_id"])
+        seen.add(t["trip_id"])
+    if dup_trip_ids:
+        problems.append(f"trips.txt 有重複的 trip_id（{len(dup_trip_ids)} 個，例如 {list(dup_trip_ids)[:5]}）")
+
     orphan_stops_in_times = {st["stop_id"] for st in stop_times if st["stop_id"] not in stop_ids}
     if orphan_stops_in_times:
         problems.append(f"stop_times 引用了不存在的站點: {list(orphan_stops_in_times)[:5]}")

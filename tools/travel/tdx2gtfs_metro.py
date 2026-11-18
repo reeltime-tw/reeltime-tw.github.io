@@ -185,34 +185,42 @@ def build_gtfs(operators: list[str], out_dir: Path):
     for st in stop_times_rows:
         stop_times_by_trip.setdefault(st["trip_id"], []).append(st)
 
+    # 注意：同一個 (trip_id, service_id) 可能有多個 Headway 時間段（例如尖峰／
+    # 非尖峰班距不同），這些都會共用同一個 new_trip_id——trips.txt／stop_times.txt
+    # 每個 trip_id 只能出現一次，只有 frequencies.txt 可以對同一個 trip_id 有多筆
+    # （不同時段各自的班距）。曾經在這裡對每個 Headway 都 append 一次 trip／
+    # stop_times，造成 r5py 讀取時報 DuplicateKeyError，改成用 set 去重。
     final_trips = []
     final_stop_times = []
     final_freq = []
+    seen_trip_ids = set()
     for fr in frequencies_rows:
         base = trips_by_id[fr["base_trip_id"]]
         new_trip_id = fr["trip_id"]
-        final_trips.append(
-            {
-                "trip_id": new_trip_id,
-                "route_id": base["route_id"],
-                "service_id": fr["service_id"],
-                "direction_id": base["direction_id"],
-            }
-        )
-        for st in stop_times_by_trip.get(fr["base_trip_id"], []):
-            t = st["t"]
-            hh, rem = divmod(t, 3600)
-            mm, ss = divmod(rem, 60)
-            time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
-            final_stop_times.append(
+        if new_trip_id not in seen_trip_ids:
+            seen_trip_ids.add(new_trip_id)
+            final_trips.append(
                 {
                     "trip_id": new_trip_id,
-                    "arrival_time": time_str,
-                    "departure_time": time_str,
-                    "stop_id": st["stop_id"],
-                    "stop_sequence": st["stop_sequence"],
+                    "route_id": base["route_id"],
+                    "service_id": fr["service_id"],
+                    "direction_id": base["direction_id"],
                 }
             )
+            for st in stop_times_by_trip.get(fr["base_trip_id"], []):
+                t = st["t"]
+                hh, rem = divmod(t, 3600)
+                mm, ss = divmod(rem, 60)
+                time_str = f"{hh:02d}:{mm:02d}:{ss:02d}"
+                final_stop_times.append(
+                    {
+                        "trip_id": new_trip_id,
+                        "arrival_time": time_str,
+                        "departure_time": time_str,
+                        "stop_id": st["stop_id"],
+                        "stop_sequence": st["stop_sequence"],
+                    }
+                )
         final_freq.append(
             {
                 "trip_id": new_trip_id,
