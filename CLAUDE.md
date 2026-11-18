@@ -145,3 +145,9 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
   - **CSP**（`<meta http-equiv=Content-Security-Policy>`）：`connect-src 'self'`、`img-src 'self' data:`、`font-src 'self'`，瀏覽器擋下所有對外連線。因此 **Barlow Condensed 字型改放 `docs/fonts/`（SIL OFL）**、海報只用 `posterLocal`（不再退回官網原圖）。**之後任何功能都不能加對外 fetch/外部圖片/外部字型，否則會被 CSP 擋**；外部只能用使用者點擊的連結（a href）。
   - 隱私說明面板 `privacySheet()`（頁尾、定位卡片、縣市面板都有入口），可「停止自動定位」。
   - **`test/privacy.py`**：模擬 5 個地點定位，檢查開啟時不自動要位置、縣市正確、無對外連線、沒有請求帶經緯度、CSP 生效（用 `securitypolicyviolation` 事件判斷，不是看連線失敗）、localStorage 不存經緯度。已用「拿掉 CSP＋故意外送座標」的壞版本確認測試會失敗。改版後執行：`cd docs && python3 -m http.server 8770 &` 再 `python3 test/privacy.py http://localhost:8770/`。
+- **出發時間（最晚幾點出門）**：使用者要求「先做出來、試用後再決定放哪」，目前放在**確認場次面板**（`ticketSheet` → `leaveHTML()`），電影頁影城卡片顯示距離並依距離排序（常用影城仍最前）。
+  - 影城座標：`docs/cinema-geo.json`（102/111 間；由 `tools/cinema-geo-src.json` 產生，每筆標來源 osm/official/addr/approx，**approx 的 17 間誤差可能數百公尺，有空可校正**）。已用縣市邊界驗證全部落在正確縣市。秀泰官方 latLng 有錯（土城標到新竹、麗寶偏移），不可盲信。沒座標的 9 間小影院只顯示「請用地圖 App」。
+  - 推估：`travelMin()` 直線距離 × 繞路係數 1.35（走路 1.25），大眾運輸 18km/h＋12 分、機車 22km/h＋5 分、開車 22km/h＋10 分（>15km 提高速度），顯示 0.85–1.25 倍區間，出門時間用上限算；提早分鐘 `twc.travelBuf`（預設 15）、交通方式 `twc.travelMode`。午夜場（<04:00）算隔天。
+  - 地圖按鈕：Google `maps/dir/?api=1&destination=&travelmode=`、Apple `maps.apple.com/?daddr=&dirflg=`，只傳**影城**位置。Google/Apple URL 都不支援「抵達時間」參數，所以 App 顯示抵達時間讓使用者自己設定。
+  - 使用者位置只存在記憶體 `S.here`（10 分鐘內重用），不寫入 localStorage。`getHere(prompt)`：未同意過時只在按按鈕後詢問。
+  - `test/privacy.py` 已加入出發時間流程的對外連線檢查。

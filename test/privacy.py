@@ -6,6 +6,7 @@
  3. 整個過程所有網路請求都只連到自己的網站，且沒有任何請求帶著經緯度
  4. 內容安全政策（CSP）有生效：網頁主動連外會被瀏覽器擋下
  5. 手機裡只存縣市名稱，不存經緯度
+ 6. 計算出發時間（距離、交通推估）也不會有任何對外連線
 """
 import sys, json
 from urllib.parse import urlparse
@@ -37,6 +38,13 @@ with sync_playwright() as pw:
         pg.click('.geo-card [data-act=geo]'); pg.wait_for_timeout(1500)
         got = pg.evaluate('S.city')
         check(got == want, f'判斷縣市：{got}（預期 {want}）')
+        # 出發時間：開一部片的第一個場次，算出發時間（用到位置與影城座標）
+        pg.click('a[href^="#/movie/"]'); pg.wait_for_timeout(800)
+        if pg.query_selector('.cin.fold .tog'):
+            pg.click('.cin.fold .tog'); pg.wait_for_timeout(300)
+            if pg.query_selector('.cin.open .stub'):
+                pg.click('.cin.open .stub'); pg.wait_for_timeout(800)
+                check(pg.query_selector('.leave') is not None, '確認場次畫面有出發時間卡片')
         ext = [u for u in reqs if urlparse(u).scheme in ('http', 'https') and urlparse(u).netloc != HOST]
         check(not ext, '沒有對外連線' + ('' if not ext else '：' + ', '.join(ext[:3])))
         coord = [u for u in reqs if str(lat) in u or str(lng) in u or f'{lat:.2f}' in u and f'{lng:.2f}' in u]
