@@ -77,17 +77,9 @@ def minutes_to_byte(m: float | None, multiplier: float) -> int:
     return v
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("cinema_id")
-    ap.add_argument("osrm_csv")
-    ap.add_argument("transit_csv")
-    ap.add_argument("out_bin")
-    args = ap.parse_args()
-
-    osrm = read_osrm_csv(args.osrm_csv)
-    transit = read_transit_csv(args.transit_csv)
-
+def pack(cinema_id: str, osrm: dict, transit: dict, out_bin) -> Path:
+    """共用的打包邏輯：給已經讀好的 osrm/transit 字典，寫出 .bin。
+    CLI 版 main() 跟 build_all.py（全台正式產出，一次處理多間影城）都呼叫這個。"""
     all_cells = set(osrm) | set(transit)
     if not all_cells:
         raise SystemExit("沒有任何格子資料，無法打包")
@@ -111,7 +103,7 @@ def main():
 
     header = {
         "version": 1,
-        "cinemaId": args.cinema_id,
+        "cinemaId": cinema_id,
         "computedAt": datetime.date.today().isoformat(),
         "lat0": LAT0,
         "lon0": LON0,
@@ -125,7 +117,7 @@ def main():
     }
     header_bytes = json.dumps(header, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
-    out_path = Path(args.out_bin)
+    out_path = Path(out_bin)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "wb") as f:
         f.write(len(header_bytes).to_bytes(4, "little"))
@@ -135,6 +127,20 @@ def main():
 
     size_kb = out_path.stat().st_size / 1024
     print(f"[pack-bin] {out_path}：{width}x{height} 格，{len(layers)} 層，共 {size_kb:.1f} KB")
+    return out_path
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cinema_id")
+    ap.add_argument("osrm_csv")
+    ap.add_argument("transit_csv")
+    ap.add_argument("out_bin")
+    args = ap.parse_args()
+
+    osrm = read_osrm_csv(args.osrm_csv)
+    transit = read_transit_csv(args.transit_csv)
+    pack(args.cinema_id, osrm, transit, args.out_bin)
 
 
 if __name__ == "__main__":

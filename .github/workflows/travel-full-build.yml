@@ -1,0 +1,120 @@
+name: 路程時間-全台 111 間影城正式產出（半徑 20km）
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write  # 要自己 commit/push docs/travel/*.bin
+  actions: write   # 最後要自己呼叫 API 觸發「發布網站」（GITHUB_TOKEN 推送不會
+                   # 自動連鎖觸發其他 workflow）
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350  # GitHub Actions 單個 job 上限 360 分鐘，留一點餘裕
+    steps:
+      - name: 取出 repo 內容
+        uses: actions/checkout@v4
+
+      - name: 安裝 Java（r5py 依賴的 R5 引擎需要）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: 安裝 Python 套件（r5py 與其依賴）
+        run: |
+          python3 -m pip install --break-system-packages --upgrade pip
+          python3 -m pip install --break-system-packages r5py geopandas shapely pandas
+
+      - name: 下載全台 OSM 資料（不裁切，全島都要算路程時間）
+        run: |
+          curl -L --max-time 600 --retry 5 --retry-delay 5 --retry-all-errors \
+            -o taiwan.osm.pbf "https://download.geofabrik.de/asia/taiwan-latest.osm.pbf"
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool zip
+          ls -la taiwan.osm.pbf
+          osmium fileinfo taiwan.osm.pbf
+
+      - name: 用自製 scooter.lua 跑 osrm-extract/partition/customize（機車，全島）
+        run: |
+          cp taiwan.osm.pbf full-scooter.osm.pbf
+          docker run --rm -v "$PWD:/data" -v "$PWD/tools/travel/osrm:/profiles" osrm/osrm-backend:latest \
+            osrm-extract -p /profiles/scooter.lua /data/full-scooter.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-partition /data/full-scooter.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-customize /data/full-scooter.osrm
+
+      - name: 用內建 car.lua 跑 osrm-extract/partition/customize（開車，全島）
+        run: |
+          cp taiwan.osm.pbf full-car.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-extract -p /opt/car.lua /data/full-car.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-partition /data/full-car.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-customize /data/full-car.osrm
+
+      - name: 用內建 foot.lua 跑 osrm-extract/partition/customize（走路，全島）
+        run: |
+          cp taiwan.osm.pbf full-foot.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest \
+            osrm-extract -p /opt/foot.lua /data/full-foot.osm.pbf
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-partition /data/full-foot.osrm
+          docker run --rm -v "$PWD:/data" osrm/osrm-backend:latest osrm-customize /data/full-foot.osrm
+
+      - name: 啟動 3 個 osrm-routed（car/scooter/foot）
+        run: |
+          docker run -d --name osrm-car -v "$PWD:/data" -p 5000:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld --max-table-size 10000 /data/full-car.osrm
+          docker run -d --name osrm-scooter -v "$PWD:/data" -p 5001:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld --max-table-size 10000 /data/full-scooter.osrm
+          docker run -d --name osrm-foot -v "$PWD:/data" -p 5002:5000 osrm/osrm-backend:latest \
+            osrm-routed --algorithm mld --max-table-size 10000 /data/full-foot.osrm
+          sleep 8
+          docker logs osrm-car --tail 20
+          docker logs osrm-scooter --tail 20
+          docker logs osrm-foot --tail 20
+
+      - name: 產生捷運/輕軌 GTFS（全部 8 個業者，台鐵/高鐵尚未支援）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_metro.py TRTC KRTC TYMC NTMC NTDLRT NTALRT TMRT KLRT
+          python3 tools/travel/validate_gtfs.py gtfs_out/metro
+
+      - name: 產生公車 GTFS（全台 111 間影城方圓 2 公里內，--all 涵蓋所有縣市）
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+        run: |
+          python3 tools/travel/tdx2gtfs_bus.py --all
+          python3 tools/travel/validate_gtfs.py gtfs_out/bus
+
+      - name: 把 GTFS 資料夾壓成 zip（r5py 吃 zip）
+        run: |
+          (cd gtfs_out/metro && zip -q -r ../metro.zip .)
+          (cd gtfs_out/bus && zip -q -r ../bus.zip .)
+
+      - name: 產生全台影城清單（docs/cinema-geo.json ∩ docs/data.json）
+        run: |
+          mkdir -p tmp
+          python3 tools/travel/make_targets.py > tmp/targets.json
+          python3 -c "import json;print('目標影城數：', len(json.load(open('tmp/targets.json'))))"
+
+      - name: 全台影城路程時間正式產出（半徑 20km，每 15 間 commit 一次）
+        run: |
+          git config user.name "tw-cinema-bot"
+          git config user.email "tw-cinema-bot@users.noreply.github.com"
+          python3 tools/travel/build_all.py taiwan.osm.pbf gtfs_out/metro.zip gtfs_out/bus.zip \
+            tmp/targets.json docs/travel \
+            --radius 20 --car-port 5000 --scooter-port 5001 --foot-port 5002 \
+            --commit-every 15 --repo-root .
+
+      - name: 停止 OSRM 容器
+        if: always()
+        run: docker stop osrm-car osrm-scooter osrm-foot 2>/dev/null || true
+
+      - name: 手動觸發「發布網站」（GITHUB_TOKEN 推送不會自動連鎖觸發其他 workflow）
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/workflows/update.yml/dispatches -X POST -f ref=main
