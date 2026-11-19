@@ -54,6 +54,17 @@ def get_token(force: bool = False, max_retries: int = 6) -> str:
             return _token
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             last_err = e
+            # 2026-11-19：連續三次在不同時段都是同樣的 400，不太像單純流量
+            # 限制那種忽好忽壞，比較像是認證本身出問題——把 TDX 實際回傳的
+            # 錯誤內容印出來（不是密鑰本身，是 TDX 的回應，印出來才看得出
+            # 是不是 invalid_client 之類的具體原因）。只在第一次嘗試印，
+            # 避免 6 次重試洗版洗出一樣的內容。
+            if attempt == 0 and hasattr(e, "read"):
+                try:
+                    body_preview = e.read()[:500]
+                    print(f"  [tdx] 登入端點錯誤回應內容：{body_preview!r}")
+                except Exception:
+                    pass
             print(f"  [tdx] 登入端點失敗（{e}），{delay:.1f}s 後重試（第 {attempt + 1}/{max_retries} 次）")
             time.sleep(delay)
             delay = min(delay * 2, 60)
