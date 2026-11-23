@@ -13,7 +13,8 @@ function cleanWatches(list) {
   if (!Array.isArray(list)) return [];
   return list.slice(0, 50).map((w) => ({
     id: str(w.id, 40), movie: str(w.movie, 40), title: str(w.title, 80), area: str(w.area || '全台', 20),
-    dates: arr(w.dates, 31, 10), from: str(w.from, 5), to: str(w.to, 5), favs: arr(w.favs, 60, 60),
+    dates: arr(w.dates, 31, 10), dateFrom: str(w.dateFrom, 10), dateTo: str(w.dateTo, 10),
+    from: str(w.from, 5), to: str(w.to, 5), favs: arr(w.favs, 60, 60),
   })).filter((w) => w.id && w.movie);
 }
 

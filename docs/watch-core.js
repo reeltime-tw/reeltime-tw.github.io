@@ -45,12 +45,14 @@ function areaSet(w,cinemas,favs){
   return out;
 }
 // 目前符合條件的場次（含午夜場規則；不含已開演）
+// 日期條件：dateFrom／dateTo（日期範圍，2026-11-24 起的新格式，任一可留空）；舊資料用 dates（指定日期清單）
 function matching(w,shows,cinemas,favs,now){
-  const today=ymd(now),set=areaSet(w,cinemas,favs),ds=new Set(w.dates||[]);
+  const today=ymd(now),set=areaSet(w,cinemas,favs),ds=new Set(w.dates||[]),df=w.dateFrom||'',dt=w.dateTo||'';
   const out=[];
   for(const s of shows){
     if(s.movie!==w.movie||!set.has(s.cinema))continue;
     if(ds.size?!ds.has(s.date):s.date<today)continue;
+    if((df&&s.date<df)||(dt&&s.date>dt))continue;
     if(!inPeriod(s.time,w.from,w.to))continue;
     if(isPast(s,now))continue;
     out.push(s);
@@ -58,7 +60,7 @@ function matching(w,shows,cinemas,favs,now){
   return out;
 }
 // 指定日期全部過期＝已結束
-const expired=(w,now)=>!!(w.dates&&w.dates.length)&&w.dates.every(d=>d<ymd(now));
+const expired=(w,now)=>(!!(w.dates&&w.dates.length)&&w.dates.every(d=>d<ymd(now)))||(!!w.dateTo&&w.dateTo<ymd(now));
 
 /* 重新比對：把「符合但沒看過」的場次放進 newKeys，回傳 {matches, fresh}
  * fresh 只含這一次才發現的新場次（拿來決定要不要跳通知，已經在 newKeys 裡的不會再通知一次） */
@@ -89,11 +91,15 @@ function noteText(w,fresh,cinemasById){
   return{title:'Reeltime：《'+w.title+'》有 '+l.length+' 個新場次',body:lines.join('\n')};
 }
 // 條件摘要：「台北市・11/28、11/29・18:00 後」
-function summary(w){
+function summary(w){return summaryParts(w).join('・')}
+// 條件拆成三段（地區、日期、時段），畫面上分開顯示
+function summaryParts(w){
   const area=w.area==='fav'?'常用影城':w.area;
-  const ds=(w.dates||[]).slice().sort().map(d=>{const [,m,dd]=d.split('-').map(Number);return m+'/'+dd});
-  const p=w.from&&w.to?w.from+'–'+w.to:w.from?w.from+' 後':w.to?w.to+' 前':'';
-  return [area,ds.length?ds.join('、'):'日期不限',p||'時段不限'].join('・');
+  const md=d=>{const [,m,dd]=d.split('-').map(Number);return m+'/'+dd};
+  const ds=(w.dates||[]).slice().sort().map(md);
+  const date=ds.length?ds.join('、'):w.dateFrom&&w.dateTo?(w.dateFrom===w.dateTo?md(w.dateFrom):md(w.dateFrom)+'–'+md(w.dateTo)):w.dateFrom?md(w.dateFrom)+' 起':w.dateTo?md(w.dateTo)+' 前':'日期不限';
+  const p=w.from&&w.to?w.from+'–'+w.to:w.from?w.from+' 後':w.to?w.to+' 前':'時段不限';
+  return [area,date,p];
 }
 
 /* ---- IndexedDB（背景程式讀不到 localStorage，所以追蹤資料多存一份在這裡）---- */
@@ -113,7 +119,7 @@ async function idbSet(key,val){
   return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(val,key);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)});
 }
 
-const api={ymd,hm,tkey,cityOf,keyOf,isPast,inPeriod,areaSet,matching,expired,refresh,markSeen,noteText,summary,mdShort,idbGet,idbSet};
+const api={ymd,hm,tkey,cityOf,keyOf,isPast,inPeriod,areaSet,matching,expired,refresh,markSeen,noteText,summary,summaryParts,mdShort,idbGet,idbSet};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.WatchCore=api;
 })(typeof self!=='undefined'?self:globalThis);

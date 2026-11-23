@@ -176,6 +176,7 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 - **電腦端** `scrape/push.mjs`：update.ps1 每次更新後執行。用 vm 載入 `docs/watch-core.js`（與手機同一套規則）比對，有新場次用 `web-push` 送出；失效位址（404/410）自動從伺服器刪除。金鑰在 `windows/push-secrets.json`、每支手機已通知狀態在 `windows/push-state.json`，**兩者都不上傳**（.gitignore）。`--dry` 預覽、`--test` 對所有手機送測試通知。測試：`node test/push.test.mjs`。
 - **網頁**：`pushSync()` 在開啟通知、儲存追蹤、切換常用影城（有「只看常用影城」的追蹤時）時把條件同步到伺服器；內容沒變不重送，但每 7 天至少更新一次。推播開啟時，打開 App 找到的新場次只顯示紅點、不再跳系統通知（避免重複）。`sw.js` 新增 `push` 事件。
 - **iPhone 條件**：iOS 16.4 以上，用 Safari「加入主畫面」並從主畫面打開，才能開啟推播（追蹤頁會說明）。
+- **追蹤介面（2026-11-24 v3.1）**：追蹤分頁跟一般電影頁做出區隔。`#/watch` 總覽（條件標籤、新場次數、接下來 3 場預覽），`#/watch/{id}` 專屬頁只列符合條件的場次，新場次紅框標「新」排最上面，條件可直接點「更改」。追蹤條件的日期改成**日期範圍** `dateFrom`／`dateTo`（下拉選單，舊的 `dates` 清單仍相容），時段也改下拉選單（每 30 分、午夜場排最後）。訂票面板改成票根樣式、右上 × 關閉、主按鈕只留一個。測試：`node test/watch-range.test.mjs`。
 - 網站 2026-11-24 搬到 GitHub 組織 `reeltime-tw`（repo `reeltime-tw.github.io`），網址 https://reeltime-tw.github.io/ 。換網址會讓手機上的常用影城、追蹤、推播都要重新設定。
 
 ## 待辦 / 可改進
