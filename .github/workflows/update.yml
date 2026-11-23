@@ -28,11 +28,20 @@ jobs:
       - name: 若專案內還沒有場次資料，沿用網站上現有的
         run: |
           if [ ! -f docs/data.json ]; then
-            curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json" -o docs/data.json || echo "目前沒有可沿用的資料"
+            curl -fsSL "https://${{ github.repository_owner }}.github.io/data.json" -o docs/data.json || echo "目前沒有可沿用的資料"
           fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+      # 2026-11 搬到 reeltime-tw 組織後，GitHub 偶爾回報「找不到剛上傳的 github-pages 檔案」（檔案其實已上傳），
+      # 所以失敗時等 30 秒再試一次
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: 發布失敗時等 30 秒
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
