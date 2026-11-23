@@ -1,6 +1,6 @@
 {
-  "name": "開場｜全台電影場次",
-  "short_name": "開場",
+  "name": "Reeltime｜全台電影場次",
+  "short_name": "Reeltime",
   "description": "全台影城場次一次看，選好場次直接到官網訂票。",
   "lang": "zh-Hant-TW",
   "start_url": "./",

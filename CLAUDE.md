@@ -37,7 +37,11 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | `scrape/chains/*.mjs` | 每家影城一個檔，匯出 `chain`、`site`、`scrape()` |
 | `docs/index.html` | App（單檔 HTML/CSS/JS，讀 `data.json`；載入失敗時顯示示範資料）。2026-11-18 淺色系改版，見「介面設計」 |
 | `scrape/posters.mjs` | 下載海報、用 sharp 縮成寬 300px WebP 存到 `docs/posters/{sha1(url)前16碼}.webp`；已有的不重抓、沒用到的刪除；電影加上 `posterLocal`。App 依序用 posterLocal → poster（官網）→ 產生的替代圖 |
-| `docs/icon.svg`、`docs/icon-*.png`、`docs/apple-touch-icon.png`、`docs/manifest.webmanifest` | App 名稱「開場」與圖示（紅底白票根＋播放符號）；PNG 由 `node tools/make-icons.cjs` 從 icon.svg 產生。manifest 讓手機「加入主畫面」後全螢幕開啟 |
+| `docs/icon.svg`、`docs/icon-*.png`、`docs/apple-touch-icon.png`、`docs/manifest.webmanifest` | App 名稱「Reeltime」（2026-11-24 由「開場」改名）與圖示（紅底白票根＋播放符號）；PNG 由 `node tools/make-icons.cjs` 從 icon.svg 產生。manifest 讓手機「加入主畫面」後全螢幕開啟 |
+| `docs/watch-core.js` | 追蹤場次的比對規則（純函式：符合條件、新場次判斷、通知文字、IndexedDB 存取），**頁面（`<script src>`）與 `sw.js`（`importScripts`）共用同一份**，規則只能改這裡 |
+| `docs/sw.js` | Service Worker：只做背景檢查（`periodicsync`）與通知點擊，**不做離線快取**。只讀自己網站的 `data.json` |
+| `tools/serve.mjs` | 本機預覽伺服器：`node tools/serve.mjs docs 8765`，開 http://localhost:8765/ 測試（Service Worker 需要 localhost 或 https）。只讀檔案 |
+| `test/watch.test.mjs` | 追蹤通知測試：比對規則、新場次判斷，並用 vm 假環境跑 `sw.js` 的背景檢查。`node test/watch.test.mjs` |
 | `docs/data.json`、`docs/raw/*.json`、`docs/posters/` | 由使用者電腦產生並提交。`raw/` 是各影城上次成功的原始資料（某家失敗時沿用） |
 | `windows/setup.ps1` | 一次性設定：裝 Git/Node、clone 到 `%USERPROFILE%\tw-cinema`、建排程（WakeToRun）、開喚醒計時器、先跑一次 |
 | `windows/update.ps1` | 更新主程式。參數 `-Only "美麗新,樂聲"`（只更新指定連鎖）、`-IfStale 18`（距上次完整更新超過 18 小時才跑，補跑用）；用具名 Mutex 避免同時跑兩份；用 SetThreadExecutionState 防止執行中睡著；紀錄在 `windows/update.log`，完整更新成功時間記在 `windows/last-full-success.txt` |
@@ -115,7 +119,7 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 - 舊版自己的問題：頂部篩選列太多層（分頁＋上映中/即將上映＋日期＋地區＋時段＋品牌）、地區只有北中南東、沒有搜尋與常用影城、電影/影城是彈出面板導致**手機返回鍵直接離開網站**、已開演場次仍顯示、每張影城卡都重複公布資訊
 
 **新架構**
-- 底部 3 分頁：現正上映 `#/`、影城 `#/cinemas`、即將上映 `#/soon`；電影頁 `#/movie/{id}`、影城頁 `#/cinema/{id}` 是獨立頁面（hash 路由，返回鍵可用、記住捲動位置）
+- 底部 4 分頁（2026-11-24 起，原本 3 個）：現正上映 `#/`、影城 `#/cinemas`、即將上映 `#/soon`、追蹤 `#/watch`；電影頁 `#/movie/{id}`、影城頁 `#/cinema/{id}` 是獨立頁面（hash 路由，返回鍵可用、記住捲動位置）
 - 頂部：縣市選擇（localStorage `twc.city`）＋搜尋；常用影城存在 `twc.favs`，排在最前面
 - 篩選：時段（只在篩選面板內自填，快捷列不放時段按鈕）／特殊廳（`kindsOf()` 把各家版本文字歸成 IMAX、4DX、ScreenX、杜比、3D、豪華廳）／品牌，放在「篩選」面板，已選的以可移除標籤顯示
 - 凌晨 0–3 點的午夜場排在當天最後（`tkey()`）；今天已開演的場次預設隱藏
@@ -128,6 +132,28 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 ## 進行中：App 內精確路程時間
 
 使用者要求在 App 內精確估算路程，同時位置不離開手機。完整計畫、環境限制與任務順序在 **`plans/travel-time.md`**，執行前先讀。
+
+## Reeltime 改版 v3（2026-11-24，方針在 `plans/ui-v3.md`，已完成）
+
+**改名**：開場 → Reeltime（副標「全台電影場次」）。品牌字用 Barlow Condensed 700、字距 .3px。圖示沒換。
+
+**追蹤場次通知**（`#/watch`）
+- 使用者在電影頁按「追蹤新場次」（即將上映的片是「開賣時通知我」；電影頁沒場次的空狀態有「有場次時通知我」會帶入目前日期與時段），設定地區（目前縣市／全台／只看常用影城）、日期（選填，未來 14 天可複選）、時段（選填，從／到）。**一部電影一筆追蹤**，已追蹤再按就是編輯。
+- 資料：`localStorage` 的 `twc.watches` ＋ IndexedDB（資料庫 `twc`，key `watches`、`favs`）鏡像，因為 Service Worker 讀不到 localStorage。欄位：`id, movie, title, area, dates[], from, to, seen[], newKeys[], created, checkedAt, rev`；場次鍵 `cinema|date|time|format`。同一筆兩邊都有時以 `rev` 大的為準（背景程式寫的比較新就用它的）。
+- 新場次判斷（`watch-core.js` 的 `refresh()`）：建立時目前符合的全放進 `seen`；之後每次載入資料，符合但不在 `seen`／`newKeys` 的就是新場次，放進 `newKeys` 並通知；使用者展開該追蹤卡片＝看過，`newKeys` 併入 `seen`。過去日期的 `seen` 會清掉；暫時消失又出現的已看過場次不會重複算新。`dates` 全部過期顯示「已結束」。
+- 通知時機：**打開 App 時**（`boot()` → `watchStart()` → `watchCheck()`）比對，有新場次就在「追蹤」分頁顯示紅點數字、其他頁上方出現橫幅、有授權時跳系統通知（透過 `showNote()`，Android 要經 Service Worker 才能跳通知）；久未使用（隱藏超過 20 分鐘）回到 App 會重新載入並比對。**App 沒開時**：`sw.js` 的 Periodic Background Sync（tag `twc-watch`，`minInterval` 6 小時），只有 Android Chrome 把網站安裝成 App 後才支援；iPhone 不支援，只能打開 App 才檢查。畫面（追蹤頁頁首）有用白話寫明這些限制。通知權限在**第一次建立追蹤後**才用一句話說明再詢問。
+- **沒有推播伺服器**，CSP 維持 `connect-src 'self'`，只補了 `worker-src 'self'`。隱私說明面板已加一段追蹤的說明。**之後任何功能不能讓追蹤條件離開手機。**
+- 測試：`node test/watch.test.mjs`。瀏覽器實測時可把 `window.showNote` 換成記錄用的假函式，並改 `S.watches[0].seen`（拿掉幾筆）再呼叫 `watchCheck()` 驗證紅點與通知。內建瀏覽器（Claude 桌面版的 Browser pane）**無法註冊 Service Worker**（會顯示「An unknown error occurred when fetching the script」，程式有 try/catch 不影響使用），所以 `sw.js` 只用 Node vm 假環境測過，沒在真正的瀏覽器跑過 `periodicsync`；上線後請在 Android Chrome 安裝成 App 實測。
+
+**UI／UX（P1 全做、P2 做了 8、9、11 與部分 10）**
+- 訂票面板：摘要在上、主按鈕「到 XX 訂票」固定在底部；「出發時間」預設收合成一列（有位置：「最晚 HH:MM 出門 ›」；沒位置：「規劃出發時間 ›」），預設高度約 340px。狀態 `S.leaveOpen`。
+- 電影頁：日期列與版本／語言快捷鈕放進 `#sub`（固定在頂部）；海報寬 88px、簡介 2 行。
+- 首頁／即將上映電影格：≥360px 3 欄、≥600px 4 欄；卡片「下一場 10:30・12間」（間＝目前地區有場次的影城數）。定位提示改單行橫幅（`geo-bar`，可關閉，`twc.geoBarOff`）。
+- `--ink3` 改 `#636a78`（白底 5.4:1、`--bg` 上 5.0:1）；原 11／11.5px 小字提高到 12px、12.5px 到 13px。
+- 文案：頁尾「每天多次自動更新」、資料來源面板列出排程時間。影城列表每列一行副標「品牌・縣市」＋「下次公布 11/25（三）」，右側「今天還有」／「今天無場次」。
+- P2：頂部「N 小時前更新」（超過 24 小時用警示色）、即將上映 3 欄與「預售」標籤、空狀態都有下一步按鈕、卡片極淡陰影。**沒做**：完整 type scale／圓角層級統一（只動到會影響版面的部分）。
+- `cityOf()` 移到 `watch-core.js`，頁面與背景程式共用。
+- 本機沒有 python，`test/privacy.py`、`test/ui.py` 無法執行；改用瀏覽器網路請求檢查（只有 localhost）與 CSP 外連測試人工確認。**有 python 的環境請補跑 `test/privacy.py`**。
 
 ## 公布時段自動排程（2026-11-24 新增）
 

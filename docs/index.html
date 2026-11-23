@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <!-- 隱私保護：這個網頁只能向自己的網站讀取資料，瀏覽器會擋下任何對外連線（位置不可能被送出去） -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
-<title>開場｜全台電影場次</title>
+<title>Reeltime｜全台電影場次</title>
 <meta name="description" content="全台影城場次一次看，選好場次直接到官網訂票。">
-<meta name="application-name" content="開場">
-<meta name="apple-mobile-web-app-title" content="開場">
+<meta name="application-name" content="Reeltime">
+<meta name="apple-mobile-web-app-title" content="Reeltime">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25,7 +25,7 @@
 @font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format("woff2")}
 @font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format("woff2")}
 :root{
-  --bg:#f5f6f8; --surface:#ffffff; --ink:#16181d; --ink2:#5b6270; --ink3:#8a909c; --line:#e2e5ea; --line2:#eef0f3;
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#16181d; --ink2:#5b6270; --ink3:#636a78; --line:#e2e5ea; --line2:#eef0f3;
   --red:#b3122e; --red-soft:#fbeef0; --ok:#1f7a4d; --ok-soft:#e8f4ee; --warn:#9a5208; --warn-soft:#fdf3e6;
   --num:"Barlow Condensed","Arial Narrow",sans-serif;
   --hd:52px;
@@ -43,9 +43,11 @@ a{color:inherit}
 /* ---- 頂部 ---- */
 header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
 .bar{height:var(--hd);display:flex;align-items:center;gap:8px}
-.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:2px;white-space:nowrap;margin-right:auto;line-height:1.15}
+.brand{display:flex;align-items:center;gap:9px;white-space:nowrap;margin-right:auto;line-height:1.15}
 .brand img{border-radius:8px;flex:0 0 auto}
-.brand small{display:block;font-weight:400;font-size:11px;color:var(--ink3);letter-spacing:0;line-height:1.3}
+.brand .bn{display:block;font-family:var(--num);font-weight:700;font-size:25px;letter-spacing:.3px;line-height:1.05}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--ink3);letter-spacing:0;line-height:1.3}
+.brand small.stale{color:var(--warn);font-weight:600}
 .loc{display:flex;align-items:center;gap:4px;height:36px;padding:0 12px;border-radius:18px;background:var(--bg);border:1px solid var(--line);font-size:14px;font-weight:600;white-space:nowrap}
 .loc svg{width:16px;height:16px;color:var(--red)}
 .ibtn{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--ink2)}
@@ -70,19 +72,20 @@ header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.96);backdro
 .chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 13px;border-radius:17px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:14px;white-space:nowrap}
 .chip svg{width:16px;height:16px}
 .chip[aria-pressed=true]{background:var(--red-soft);border-color:var(--red);color:var(--red);font-weight:600}
-.chip .n{min-width:18px;height:18px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;display:inline-grid;place-items:center;padding:0 5px}
+.chip .n{min-width:18px;height:18px;border-radius:9px;background:var(--red);color:#fff;font-size:12px;display:inline-grid;place-items:center;padding:0 5px}
 .chip.x{background:var(--red-soft);border-color:transparent;color:var(--red)}
 
 main{padding:14px 0 24px;min-height:60vh}
+#sub .fbar{padding-bottom:8px}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:22px 0 10px}
 .sec-h:first-child{margin-top:4px}
 .sec-h h2{margin:0;font-size:17px}
 .sec-h span{font-size:13px;color:var(--ink3)}
 
 /* ---- 電影格 ---- */
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}
-@media(min-width:540px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(min-width:720px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 10px}
+@media(min-width:360px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:600px){.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 12px}}
 .mv{display:block;text-align:left;width:100%;text-decoration:none;color:inherit}
 .cin-h a,.row a{color:inherit}
 .poster{position:relative;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:var(--line2)}
@@ -90,15 +93,17 @@ main{padding:14px 0 24px;min-height:60vh}
 .mv:hover .poster img{transform:scale(1.02)}
 .poster img{transition:transform .25s}
 @media(prefers-reduced-motion:reduce){.poster img{transition:none}}
-.rt{position:absolute;right:6px;top:6px;min-width:26px;height:20px;padding:0 5px;border-radius:5px;font-size:11px;font-weight:700;display:grid;place-items:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.rt{position:absolute;right:6px;top:6px;min-width:26px;height:20px;padding:0 5px;border-radius:5px;font-size:12px;font-weight:700;display:grid;place-items:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .rt-普{background:#2b8a3e}.rt-護{background:#1c64c4}.rt-輔12{background:#e3b505;color:#3a2d00}.rt-輔15{background:#e8590c}.rt-限{background:#c92a2a}
 .flag{position:absolute;left:0;bottom:0;right:0;padding:16px 8px 6px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font-size:12px;font-weight:600}
-.mv h3{margin:8px 0 0;font-size:15px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mv p{margin:2px 0 0;font-size:13px;color:var(--ink2)}
-.mv p b{font-family:var(--num);font-size:16px;font-weight:600;color:var(--red)}
+.mv h3{margin:6px 0 0;font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mv p{margin:2px 0 0;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv p b{font-family:var(--num);font-size:15px;font-weight:600;color:var(--red);margin:0 1px 0 3px;letter-spacing:0}
+.grid .rt{right:4px;top:4px;min-width:22px;height:18px;font-size:12px}
+.grid .flag{padding:14px 6px 4px;font-size:12px}
 
 /* ---- 列表 ---- */
-.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(22,24,29,.06)}
 .row{display:flex;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;border-top:1px solid var(--line2)}
 .row:first-child{border-top:0}
 .row:hover{background:#fafbfc}
@@ -111,21 +116,26 @@ main{padding:14px 0 24px;min-height:60vh}
 .star svg{width:21px;height:21px}
 .star[aria-pressed=true]{color:#e0a400}
 .star:hover{background:var(--bg)}
-.publine{font-size:12px;color:var(--ink3);margin-top:2px}
+.publine{font-size:12px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .publine .ok{color:var(--ok)}
+.row .side small{display:block;font-size:12px;color:var(--ink3)}
+.row .side.none{font-size:12px;white-space:nowrap}
 
 /* ---- 電影頁 ---- */
 .hero{display:flex;gap:14px;align-items:flex-start}
-.hero .poster{width:108px;flex:0 0 auto;border-radius:10px}
-.hero h1{margin:0;font-size:21px;line-height:1.3}
+.hero .poster{width:88px;flex:0 0 auto;border-radius:10px}
+.hero h1{margin:0;font-size:20px;line-height:1.3}
+.hero .watch{margin-top:10px;height:36px;padding:0 14px;font-size:14px}
+svg.bell{width:18px;height:18px;flex:0 0 auto}
+.btn.on{background:var(--red-soft);border-color:var(--red);color:var(--red)}
 .hero .en{font-size:13px;color:var(--ink3);margin-top:2px}
 .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .fact{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--line);color:var(--ink2)}
-.syn{font-size:14px;color:var(--ink2);margin:14px 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.syn{font-size:14px;color:var(--ink2);margin:10px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .syn.open{display:block}
 .more{font-size:13px;color:var(--red);margin-top:2px;padding:4px 0}
 
-.cin{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px;margin-bottom:10px}
+.cin{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px;margin-bottom:10px;box-shadow:0 1px 2px rgba(22,24,29,.06)}
 .cin-h{display:flex;align-items:flex-start;gap:6px}
 .cin-h .main{flex:1;min-width:0}
 .cin-h h3{margin:0;font-size:16px;line-height:1.35}
@@ -147,7 +157,7 @@ main{padding:14px 0 24px;min-height:60vh}
 .cin-more{display:inline-block;margin-top:8px;text-decoration:none}
 @media(prefers-reduced-motion:reduce){.cin .chev{transition:none}}
 .fg{margin-top:10px}
-.fg-l{font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+.fg-l{font-size:13px;color:var(--ink2);margin-bottom:6px}
 .stubs{display:flex;flex-wrap:wrap;gap:8px}
 .past{font-size:13px;color:var(--ink3);margin-top:10px;padding:4px 0}
 
@@ -157,7 +167,7 @@ main{padding:14px 0 24px;min-height:60vh}
   radial-gradient(circle at 100% 50%,transparent 5px,var(--c) 5.5px) right/51% 100% no-repeat;
   filter:drop-shadow(0 0 .6px rgba(22,24,29,.55)) drop-shadow(0 1px 1px rgba(22,24,29,.08));border-radius:7px}
 .stub b{display:block;font-family:var(--num);font-size:23px;font-weight:600;line-height:1.05;letter-spacing:.3px}
-.stub span{display:block;font-size:11px;color:var(--ink3);line-height:1.3}
+.stub span{display:block;font-size:12px;color:var(--ink3);line-height:1.3}
 .stub:hover{--c:var(--red-soft)}
 .stub:hover b{color:var(--red)}
 .stub.low span{color:var(--warn)}
@@ -176,7 +186,7 @@ main{padding:14px 0 24px;min-height:60vh}
 .notice.warn{background:var(--warn-soft);border-color:#f2dcbf}
 .pubbox{display:grid;gap:4px;font-size:13.5px;color:var(--ink2)}
 .pubbox b{color:var(--ink)}
-.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;margin-left:4px;vertical-align:1px}
+.tag{display:inline-block;font-size:12px;padding:0 6px;border-radius:4px;margin-left:4px;vertical-align:1px}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .tag.est{background:var(--bg);color:var(--ink3);border:1px solid var(--line)}
 
@@ -193,8 +203,8 @@ main{padding:14px 0 24px;min-height:60vh}
 .search svg{width:18px;height:18px;color:var(--ink3);flex:0 0 auto}
 .search input{flex:1;border:0;outline:0;background:none;font:inherit;font-size:16px;color:var(--ink);min-width:0}
 
-.foot{text-align:center;font-size:12.5px;color:var(--ink3);margin-top:28px}
-.foot button{color:var(--ink2);text-decoration:underline;font-size:12.5px}
+.foot{text-align:center;font-size:13px;color:var(--ink3);margin-top:28px}
+.foot button{color:var(--ink2);text-decoration:underline;font-size:13px}
 .banner{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);margin-bottom:14px;font-size:14px}
 .banner svg{width:22px;height:22px;color:var(--red);flex:0 0 auto}
 .banner .main{flex:1}
@@ -203,9 +213,11 @@ main{padding:14px 0 24px;min-height:60vh}
 /* ---- 底部分頁 ---- */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabbar .in{max-width:760px;margin:0 auto;display:flex}
-.tabbar a{flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;color:var(--ink3);text-decoration:none}
+.tabbar a{position:relative;flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;color:var(--ink3);text-decoration:none}
+.tabbar .bdg{position:absolute;top:5px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:12px;font-style:normal;font-weight:700;display:grid;place-items:center;line-height:1}
 .tabbar a[aria-current=page]{color:var(--red);font-weight:600}
 .tabbar svg{width:23px;height:23px}
+.tabbar .bdg[hidden]{display:none}
 
 /* ---- 底部彈出面板 ---- */
 .ov{position:fixed;inset:0;z-index:50;background:rgba(22,24,29,.42);display:flex;align-items:flex-end;justify-content:center}
@@ -226,20 +238,20 @@ main{padding:14px 0 24px;min-height:60vh}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
 .leave{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:12px 0;background:var(--surface)}
 .leave.busy{opacity:.6}
-.lv-h{display:flex;align-items:center;gap:6px;font-size:14px}.lv-h svg{width:18px;height:18px;color:var(--red)}.lv-h span{margin-left:auto;font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.lv-h{display:flex;align-items:center;gap:6px;font-size:14px}.lv-h svg{width:18px;height:18px;color:var(--red)}.lv-h span{margin-left:auto;font-size:12px;color:var(--ink3);border:1px solid var(--line);border-radius:6px;padding:0 6px}
 .lv-big{display:flex;align-items:baseline;gap:8px;margin:8px 0 2px}.lv-big b{font-family:var(--num);font-size:40px;line-height:1;color:var(--red);font-weight:700}.lv-big span{font-size:15px;color:var(--ink2)}
 .lv-sub{font-size:13px;color:var(--ink2);line-height:1.5}.lv-late{color:var(--red);font-weight:600}
 .lv-note{font-size:14px;line-height:1.55;margin:8px 0}
 .lv-row{display:flex;align-items:center;gap:10px;margin-top:10px}.lv-row>span{font-size:12px;color:var(--ink2);flex:0 0 3.2em}
 .chip.sm{height:30px;padding:0 10px;font-size:13px}
-.maps{display:flex;gap:8px;margin-top:12px}.maps .btn{flex:1;height:48px;font-size:14px;line-height:1.15}.maps .btn span{display:grid;text-align:left}.maps small{font-size:11px;font-weight:500;color:var(--ink2)}.maps svg{width:16px;height:16px}
+.maps{display:flex;gap:8px;margin-top:12px}.maps .btn{flex:1;height:48px;font-size:14px;line-height:1.15}.maps .btn span{display:grid;text-align:left}.maps small{font-size:12px;font-weight:500;color:var(--ink2)}.maps svg{width:16px;height:16px}
 .leave .btn svg{width:18px;height:18px;flex:0 0 auto}
 .lv-row .opts{gap:6px}
 .lv-sel{position:relative;display:inline-flex;align-items:center}
 .lv-sel select{appearance:none;-webkit-appearance:none;height:34px;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:17px;background:var(--surface);font:inherit;font-size:14px;color:var(--ink)}
 .lv-sel svg{position:absolute;right:9px;width:16px;height:16px;pointer-events:none;color:var(--ink2)}
 .lv-hint{font-size:12px;color:var(--ink3)!important;flex:1 1 auto!important}
-.lv-tiny{font-size:11.5px;color:var(--ink3);margin-top:6px;line-height:1.5}
+.lv-tiny{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
 .btn.block{width:100%}
 .dist{color:var(--ink)}
 .geo-card{display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0 14px}
@@ -254,6 +266,49 @@ main{padding:14px 0 24px;min-height:60vh}
 .geo-btn[aria-pressed=true]{border-color:var(--red);background:var(--red-soft)}
 .geo-btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .sheet:focus{outline:none}
+/* 訂票面板：摘要在上、主按鈕固定在底部，不用捲動就能按 */
+.sheet.tk{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+.sheet.tk .tk-body{flex:1 1 auto;overflow:auto;min-height:0;-webkit-overflow-scrolling:touch}
+.sheet.tk .tk-foot{flex:0 0 auto;display:flex;gap:8px;padding:10px 0 calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line2);background:var(--surface)}
+.tk-foot .btn{height:48px}.tk-foot .btn.sec{flex:0 0 28%}.tk-foot .btn.pri{flex:1}
+.sheet.tk h2{margin:2px 0 8px}
+.sheet.tk .sum{margin-bottom:10px}
+.sheet.tk .sum div{padding:8px 14px}
+.lv-fold{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:14px;text-align:left}
+.lv-fold svg{width:18px;height:18px;color:var(--red);flex:0 0 auto}.lv-fold b{font-family:var(--num);font-size:20px;color:var(--red)}.lv-fold .go{margin-left:auto;color:var(--ink2);font-size:18px}
+.leave .lv-h{cursor:pointer}
+.sheet.tk .note{margin:8px 0 10px}
+/* 定位提示：單行橫幅 */
+.geo-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;min-height:48px;max-height:72px;overflow:hidden;padding:8px 6px 8px 12px;margin:0 0 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:14px;box-shadow:0 1px 2px rgba(22,24,29,.06)}
+.geo-bar>span{font-weight:600;margin-right:auto;white-space:nowrap}
+.geo-bar .btn{height:32px;padding:0 10px;font-size:13px;border-radius:999px}
+.geo-bar .x{width:32px;height:32px;display:grid;place-items:center;border-radius:16px;color:var(--ink2)}.geo-bar .x svg{width:16px;height:16px}
+/* 追蹤 */
+.wnote{font-size:13px;color:var(--ink2);line-height:1.6;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.wnote .row2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.wnote b{color:var(--ink)}
+.wcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;box-shadow:0 1px 2px rgba(22,24,29,.06)}
+.w-top{display:flex;align-items:flex-start;gap:4px;padding:10px 8px 10px 12px}
+.w-main{all:unset;box-sizing:border-box;cursor:pointer;flex:1;min-width:0;display:flex;gap:12px;align-items:flex-start}
+.w-main:focus-visible{outline:2px solid var(--red);outline-offset:3px;border-radius:8px}
+.w-main .poster{width:52px;flex:0 0 auto;border-radius:6px}
+.w-info{flex:1;min-width:0}.w-info h3{margin:0;font-size:15.5px;line-height:1.35}
+.w-info .sub{font-size:13px;color:var(--ink2)}
+.w-st{display:inline-block;margin-top:4px;font-size:13px;color:var(--ink2)}
+.w-st.new{color:#fff;background:var(--red);border-radius:10px;padding:0 8px;font-weight:600}
+.w-st.end{color:var(--ink3)}
+.w-act{display:flex;flex-direction:column;gap:2px}
+.w-act button{font-size:13px;color:var(--ink2);height:32px;padding:0 8px;border-radius:8px}
+.w-act button:hover{background:var(--bg)}.w-act .del.arm{color:var(--red);font-weight:600}
+.w-list{padding:0 14px 12px;border-top:1px solid var(--line2)}
+.w-list .fg{margin-top:10px}.w-list .fg-l b{color:var(--red)}
+.w-opts{display:flex;flex-wrap:wrap;gap:8px}
+.w-mv{display:flex;gap:12px;align-items:center;margin-bottom:6px}.w-mv .poster{width:44px;flex:0 0 auto;border-radius:6px}.w-mv b{font-size:16px}
+.w-prev{margin:14px 0 0;padding:10px 14px;border-radius:12px;background:var(--bg);font-size:14px}.w-prev b{color:var(--red);font-family:var(--num);font-size:20px}
+.wbanner{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;border-radius:12px;background:var(--red-soft);border:1px solid var(--red);font-size:14px;color:var(--ink)}
+.wbanner a{font-weight:700;color:var(--red);text-decoration:none;margin-left:auto;white-space:nowrap}
+.wbanner button{width:32px;height:32px;display:grid;place-items:center;color:var(--ink2)}.wbanner button svg{width:16px;height:16px}
+.wbanner svg.bell{color:var(--red)}
 .trange{display:flex;gap:10px}
 .trange label{flex:1;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)}
 .trange input{flex:1;min-width:0;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:inherit;font-size:16px;color:var(--ink)}
@@ -263,7 +318,7 @@ main{padding:14px 0 24px;min-height:60vh}
 .sum div:first-child{border-top:0}
 .sum span{color:var(--ink2);flex:0 0 auto}
 .sum b{text-align:right}
-.note{font-size:12.5px;color:var(--ink3);margin-top:10px}
+.note{font-size:13px;color:var(--ink3);margin-top:10px}
 .sheet-foot{display:flex;gap:8px;margin-top:18px}
 .sheet-foot .btn{flex:1}
 details{margin-top:16px;font-size:13px;color:var(--ink2)}
@@ -287,9 +342,11 @@ textarea{width:100%;min-height:90px;margin-top:8px;border:1px solid var(--line);
   <a href="#/" data-nav="now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>現正上映</a>
   <a href="#/cinemas" data-nav="cinemas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>影城</a>
   <a href="#/soon" data-nav="soon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>即將上映</a>
+  <a href="#/watch" data-nav="watch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>追蹤<i class="bdg" hidden></i></a>
 </div></nav>
 <div id="layer"></div>
 
+<script src="watch-core.js"></script>
 <script>
 /* ================= 資料格式 =================
  * {
@@ -326,18 +383,12 @@ const ICON={
   star:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>',
   starO:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  bell:'<svg class="bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>',
 };
 
 /* ---- 縣市（舊資料沒有縣市時，從店名推斷）---- */
-const COUNTY=/^(苗栗|彰化|南投|雲林|屏東|宜蘭|花蓮|台東|澎湖|金門|連江)$/; // 「花蓮市」等縣轄市一律歸到縣
-function cityOf(c){
-  const t=(c.city||'')+' '+c.name+' '+(c.addr||'');
-  const m=t.replace(/臺/g,'台').match(/(台北|新北|基隆|桃園|新竹|苗栗|台中|彰化|南投|雲林|嘉義|台南|高雄|屏東|宜蘭|花蓮|台東|澎湖|金門|連江)(市|縣)?/);
-  if(m)return m[1]+(COUNTY.test(m[1])?'縣':(m[2]||'市'));
-  const D={'新北市':/板橋|新店|中和|永和|土城|林口|三重|新莊|汐止|淡水/,'桃園市':/中壢|青埔|蘆竹/,'新竹縣':/竹北/,'苗栗縣':/頭份|竹南/,'台中市':/大里|豐原/,'高雄市':/岡山|鳳山|左營/,'宜蘭縣':/羅東/};
-  for(const k in D)if(D[k].test(t))return k;
-  return c.region||'其他';
-}
+// 縣市推斷規則放在 watch-core.js，頁面和背景程式（追蹤通知）共用同一份
+const cityOf=c=>WatchCore.cityOf(c);
 
 /* ---- 版本分類：原始文字各家不同，整理成可篩選的類別 ---- */
 const KINDS=['IMAX','4DX','ScreenX','杜比','3D','豪華廳'];
@@ -425,7 +476,7 @@ const isPast=s=>s.date===todayS&&s.time<nowHM()&&+s.time.slice(0,2)>=4;
 const showOK=s=>inPeriod(s.time)&&(!S.kinds.size||s._k.some(k=>S.kinds.has(k)))&&(!S.langs.size||s._l.some(l=>S.langs.has(l)));
 const areaCinemas=()=>DB.cinemas.filter(c=>(S.city==='全台'||c._city===S.city)&&(!S.chains.size||S.chains.has(c.chain)));
 const isFav=id=>S.favs.has(id);
-function toggleFav(id){S.favs.has(id)?S.favs.delete(id):S.favs.add(id);store.set('favs',[...S.favs]);toast(S.favs.has(id)?'已加入常用影城，會排在最前面':'已移出常用影城')}
+function toggleFav(id){S.favs.has(id)?S.favs.delete(id):S.favs.add(id);store.set('favs',[...S.favs]);WatchCore.idbSet('favs',[...S.favs]).catch(()=>{});toast(S.favs.has(id)?'已加入常用影城，會排在最前面':'已移出常用影城')}
 const filterCount=()=>(periodOn()?1:0)+S.kinds.size+S.langs.size+S.chains.size;
 // 快捷列：只放特殊廳規格與語言，顯示這天有場次的選項
 const kindChips=list=>KINDS.filter(k=>list.some(s=>s._k.includes(k))).map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('');
@@ -456,11 +507,10 @@ function groupedTimes(list){
   const by=new Map();for(const s of list){const k=s.format||'';if(!by.has(k))by.set(k,[]);by.get(k).push(s)}
   return [...by].map(([f,l])=>`<div class="fg">${f?`<div class="fg-l">${esc(f)}</div>`:''}${stubsHTML(l)}</div>`).join('');
 }
+// 影城列表只留一短句：「下次公布 11/25（三）」，官方公告才加「官方」標籤
 function pubLine(c){
-  const p=c.publish;if(!p)return '';
-  const a=p.publishedUntil?`已公布到 ${md(p.publishedUntil)}`:'尚未公布場次';
-  let b='';if(p.nextAt){const [d,t]=p.nextAt.split('T');b=`・下次 ${md(d)}${t?' '+t:''}${p.official?'<span class="tag ok">官方</span>':''}`}
-  return `<div class="publine">${a}${b}</div>`;
+  const p=c.publish;if(!p||!p.nextAt)return '';
+  return `<div class="publine">下次公布 ${md(p.nextAt.slice(0,10))}${p.official?'<span class="tag ok">官方</span>':''}</div>`;
 }
 function pubBox(c){
   const p=c.publish;if(!p)return '';
@@ -475,10 +525,18 @@ function earliestPublish(cs){
 const metaLine=m=>[m.genre,m.runtime?m.runtime+' 分鐘':''].filter(Boolean).map(esc).join('，');
 
 /* ================= 頁面 ================= */
+function fmtAgo(iso){
+  const t=new Date(iso);if(isNaN(t))return null;
+  const m=Math.round((Date.now()-t)/60000);
+  if(m<2)return{t:'剛剛更新'};
+  if(m<60)return{t:m+' 分鐘前更新'};
+  if(m<24*60)return{t:Math.floor(m/60)+' 小時前更新'};
+  return{t:fmtTime(iso)+' 更新（資料偏舊）',stale:true};
+}
 function topBar(){
   if(S.route==='movie'||S.route==='cinema')return `<button class="back" data-act="back" aria-label="返回">${ICON.back}返回</button><span style="margin-right:auto"></span><button class="loc" data-act="loc">${ICON.pin}${esc(S.city)}${ICON.down}</button>`;
-  const upd=DB&&!DB.demo&&DB.updatedAt?'場次更新於 '+fmtTime(DB.updatedAt):'';
-  return `<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div>開場<small>${esc(upd||'全台電影場次')}</small></div></div><button class="loc" data-act="loc" aria-label="地區：${esc(S.city)}，點擊切換">${ICON.pin}${esc(S.city)}${ICON.down}</button><button class="ibtn" data-act="search" aria-label="搜尋電影或影城">${ICON.search}</button>`;
+  const ago=DB&&!DB.demo&&DB.updatedAt?fmtAgo(DB.updatedAt):null;
+  return `<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><span class="bn">Reeltime</span><small class="${ago&&ago.stale?'stale':''}">${esc(ago?ago.t:'全台電影場次')}</small></div></div><button class="loc" data-act="loc" aria-label="地區：${esc(S.city)}，點擊切換">${ICON.pin}${esc(S.city)}${ICON.down}</button><button class="ibtn" data-act="search" aria-label="搜尋電影或影城">${ICON.search}</button>`;
 }
 function demoBanner(){
   if(!DB.demo)return '';
@@ -487,7 +545,7 @@ function demoBanner(){
 function bad(){const b=DB.status.filter(x=>!x.ok).map(x=>x.chain);return b.length?`<div class="note" style="margin:0 0 10px">${esc(b.join('、'))} 這次更新失敗，暫時顯示前一次的場次。</div>`:''}
 
 /* 現正上映 */
-function movieCountIn(cs,m,d){let n=0,next='';for(const c of cs)for(const s of showsOf(c.id,m.id,d))if(showOK(s)&&!isPast(s)){n++;if(!next||tkey(s.time)<tkey(next))next=s.time}return{n,next}}
+function movieCountIn(cs,m,d){let n=0,next='';const ids=new Set();for(const c of cs)for(const s of showsOf(c.id,m.id,d))if(showOK(s)&&!isPast(s)){n++;ids.add(c.id);if(!next||tkey(s.time)<tkey(next))next=s.time}return{n,next,c:ids.size}}
 function pageNow(){
   const cs=areaCinemas();
   const dayCount=d=>DB.movies.some(m=>m.status!=='soon'||m.presale?cs.some(c=>showsOf(c.id,m.id,d).length):false)?1:0;
@@ -496,15 +554,16 @@ function pageNow(){
   for(const m of DB.movies){if(m.status==='soon'&&!m.presale)continue;const r=movieCountIn(cs,m,S.date);if(r.n)list.push([m,r])}
   list.sort((a,b)=>b[1].n-a[1].n);
   let html=demoBanner()+bad();
-  if(S.city==='全台'&&!store.get('askedCity',false))html+=`<div class="geo-card">${ICON.pin}<div class="main"><b>只看你附近的影城？</b><p>按「使用目前位置」後，手機會詢問是否允許。位置只在你的手機上用來判斷縣市，<b>不會上傳、不會儲存</b>。</p><div class="row2"><button class="btn pri" data-act="geo">使用目前位置</button><button class="btn" data-act="loc">自己選縣市</button></div><button class="lnk" data-act="privacy">位置與隱私說明 ›</button></div></div>`;
+  // 定位提示：單行橫幅，可關閉（記住不再顯示）；隱私說明在縣市面板裡
+  if(S.city==='全台'&&!store.get('askedCity',false)&&!store.get('geoBarOff',false))html+=`<div class="geo-bar"><span>只看附近影城？</span><button class="btn pri" data-act="geo">使用目前位置</button><button class="btn" data-act="loc">選縣市</button><button class="x" data-act="geobaroff" aria-label="關閉，不再顯示">${ICON.x}</button></div>`;
   if(!list.length){
     const unpub=cs.length&&cs.every(c=>!published(c,S.date));
     const e=earliestPublish(cs);
     html+=unpub?`<div class="empty"><b>${md(S.date)}的場次還沒公布</b>${e?`最快的是 ${esc(e.c.name)}，預計 ${md(e.n.slice(0,10))}${e.n.includes('T')?' '+e.n.slice(11):''} 公布。`:''}<br><a class="btn" href="#/cinemas">看各影城公布時間</a></div>`
-      :`<div class="empty"><b>這個條件下沒有場次</b>${S.date===todayS?'今天的場次可能都已開演。':''}試試其他日期，或放寬篩選條件。${filterCount()?'<br><button class="btn" data-act="clear">清除篩選</button>':''}</div>`;
+      :`<div class="empty"><b>這個條件下沒有場次</b>${S.date===todayS?'今天的場次可能都已開演。':''}試試其他日期，或放寬篩選條件。<br>${filterCount()?'<button class="btn" data-act="clear">清除篩選</button> ':''}${S.city!=='全台'?`<button class="btn" data-setcity="全台">改看全台</button>`:''}<a class="btn" href="#/soon">看即將上映</a></div>`;
   }else{
     html+=`<div class="sec-h"><h2>${dayName(S.date)} ${md(S.date).replace(/（.）/,'')} 有 ${list.length} 部電影</h2><span>${esc(S.city)}${S.chains.size?'・'+esc([...S.chains].join('、')):''}</span></div>`;
-    html+=`<div class="grid">${list.map(([m,r])=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.status==='soon'?'<span class="flag">預售</span>':''}</div><h3>${esc(m.title)}</h3><p>${r.n} 場・最快 <b>${r.next}</b></p></a>`).join('')}</div>`;
+    html+=`<div class="grid">${list.map(([m,r])=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.status==='soon'?'<span class="flag">預售</span>':''}</div><h3>${esc(m.title)}</h3><p>下一場<b>${r.next}</b>・${r.c}間</p></a>`).join('')}</div>`;
   }
   html+=foot();
   view.innerHTML=html;
@@ -518,7 +577,7 @@ function pageSoon(){
   if(!l.length){view.innerHTML=html+'<div class="empty"><b>目前沒有即將上映的電影</b></div>'+foot();return}
   const by=new Map();for(const m of l){const k=m.release||'未定';if(!by.has(k))by.set(k,[]);by.get(k).push(m)}
   for(const [d,ms] of by){
-    html+=`<div class="sec-h"><h2>${d==='未定'?'上映日未定':md(d)+' 上映'}</h2><span>${ms.length} 部</span></div><div class="grid">${ms.map(m=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.presale?'<span class="flag">已開放預售</span>':''}</div><h3>${esc(m.title)}</h3><p>${metaLine(m)||'&nbsp;'}</p></a>`).join('')}</div>`;
+    html+=`<div class="sec-h"><h2>${d==='未定'?'上映日未定':md(d)+' 上映'}</h2><span>${ms.length} 部</span></div><div class="grid">${ms.map(m=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.presale?'<span class="flag">預售</span>':''}</div><h3>${esc(m.title)}</h3><p>${metaLine(m)||'&nbsp;'}</p></a>`).join('')}</div>`;
   }
   view.innerHTML=html+foot();
 }
@@ -526,7 +585,7 @@ function pageSoon(){
 /* 影城列表 */
 function cinemaRow(c){
   const n=DB.movies.reduce((a,m)=>a+showsOf(c.id,m.id,todayS).filter(s=>!isPast(s)).length,0);
-  return `<div class="row"><a class="main" href="#/cinema/${encodeURIComponent(c.id)}" style="text-decoration:none"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}${S.city==='全台'||S.route!=='cinemas'?'・'+esc(c._city):''}</div>${pubLine(c)}</a><a class="side" href="#/cinema/${encodeURIComponent(c.id)}" style="text-decoration:none" aria-hidden="true" tabindex="-1"><b>${n||'–'}</b>今天剩餘</a><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button></div>`;
+  return `<div class="row"><a class="main" href="#/cinema/${encodeURIComponent(c.id)}" style="text-decoration:none"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}</div>${pubLine(c)}</a><a class="side${n?'':' none'}" href="#/cinema/${encodeURIComponent(c.id)}" style="text-decoration:none" aria-hidden="true" tabindex="-1">${n?`<b>${n}</b>今天還有`:'今天無場次'}</a><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button></div>`;
 }
 function pageCinemas(){
   sub.innerHTML=`<div style="padding:8px 0 10px"><label class="search">${ICON.search}<span class="sr">搜尋影城</span><input id="cq" type="search" placeholder="搜尋影城名稱或品牌" value="${esc(S.cq)}" autocomplete="off"></label></div>`;
@@ -548,10 +607,14 @@ function renderCinemaList(){
 }
 
 /* 電影頁 */
+function watchBtn(m){
+  const w=S.watches.find(x=>x.movie===m.id),soon=m.status==='soon'&&!m.presale;
+  return `<button class="btn watch${w?' on':''}" data-watch="${esc(m.id)}">${ICON.bell}${w?'追蹤中':soon?'開賣時通知我':'追蹤新場次'}</button>`;
+}
 function pageMovie(id){
   const m=DB.byM[id];
   if(!m){view.innerHTML='<div class="empty"><b>找不到這部電影</b>可能已經下檔。<br><a class="btn" href="#/">回到現正上映</a></div>';sub.innerHTML='';return}
-  document.title=m.title+'｜開場';
+  document.title=m.title+'｜Reeltime';
   const cs=areaCinemas();
   const all=BYM[m.id]||[];
   const areaIds=new Set(cs.map(c=>c.id));
@@ -562,7 +625,7 @@ function pageMovie(id){
   if(m.status==='soon'&&dset.size&&!dset.has(S.date))S.date=[...dset].sort()[0];
   sub.innerHTML='';
   const facts=[m.rating?m.rating+'級':'',m.runtime?m.runtime+' 分鐘':'',m.genre,m.release?(m.release>todayS?md(m.release)+' 上映':md(m.release)+' 上映'):''].filter(Boolean);
-  let html=`<div class="hero"><div class="poster">${posterImg(m,true)}</div><div><h1>${esc(m.title)}</h1>${m.en?`<div class="en">${esc(m.en)}</div>`:''}<div class="facts">${facts.map(f=>`<span class="fact">${esc(f)}</span>`).join('')}</div></div></div>`;
+  let html=`<div class="hero"><div class="poster">${posterImg(m,true)}</div><div><h1>${esc(m.title)}</h1>${m.en?`<div class="en">${esc(m.en)}</div>`:''}<div class="facts">${facts.map(f=>`<span class="fact">${esc(f)}</span>`).join('')}</div>${watchBtn(m)}</div></div>`;
   if(m.synopsis)html+=`<p class="syn" id="syn">${esc(m.synopsis)}</p>${m.synopsis.length>70?'<button class="more" data-act="syn">展開簡介</button>':''}`;
   if(m.status==='soon'&&!m.presale){
     const e=earliestPublish(cs);
@@ -570,12 +633,10 @@ function pageMovie(id){
     view.innerHTML=html+foot();return;
   }
   const count=d=>cs.reduce((a,c)=>a+showsOf(c.id,m.id,d).length,0);
-  html+=`<div class="sec-h" style="margin-bottom:0"><h2>場次</h2><span>${esc(S.city)}</span></div>`;
-  html+=dateStrip(dates,count);
-  // 這部片在這天有哪些版本
+  html+=`<div class="sec-h" style="margin:12px 0 0"><h2>場次</h2><span>${esc(S.city)}</span></div>`;
+  // 日期列與版本／語言快捷鈕放在頂部固定區（跟首頁一樣），捲動時不用回到最上面換日期
   const dayShows=cs.flatMap(c=>showsOf(c.id,m.id,S.date));
-  const kinds=KINDS.filter(k=>dayShows.some(s=>s._k.includes(k)));
-  html+=`<div class="fbar">${kindChips(dayShows)}${langChips(dayShows)}${S.chains.size?[...S.chains].map(k=>`<button class="chip x" data-unset="chain" data-v="${esc(k)}">${esc(k)} ${ICON.x}</button>`).join(''):''}</div>`;
+  sub.innerHTML=dateStrip(dates,count)+`<div class="fbar">${kindChips(dayShows)}${langChips(dayShows)}${S.chains.size?[...S.chains].map(k=>`<button class="chip x" data-unset="chain" data-v="${esc(k)}">${esc(k)} ${ICON.x}</button>`).join(''):''}</div>`;
   // 影城：常用的排前面，其餘依縣市
   let pastN=0;
   const blocks=[];
@@ -591,6 +652,7 @@ function pageMovie(id){
     const e=earliestPublish(cs);
     html+=unpub?`<div class="notice warn">${md(S.date)}的場次還沒公布${e?`。最快是 <b>${esc(e.c.name)}</b>，預計 <b>${md(e.n.slice(0,10))}${e.n.includes('T')?' '+e.n.slice(11):''}</b> 公布`:''}。</div>`
       :`<div class="empty"><b>${md(S.date)}${esc(S.city==='全台'?'':S.city)}沒有符合的場次</b>${pastN&&!S.showPast?`今天已開演 ${pastN} 場。`:'換個日期、縣市，或放寬篩選試試。'}${S.city!=='全台'?`<br><button class="btn" data-setcity="全台">改看全台</button>`:''}</div>`;
+    html+=`<div style="text-align:center;margin:-4px 0 12px"><button class="btn" data-watchnew="${esc(m.id)}">${ICON.bell}有場次時通知我</button></div>`;
   }else{
     // 預設收合：只有一間影城、或是常用影城時自動展開；其他由使用者點開
     if(S.openFor!==m.id){S.openFor=m.id;S.open=new Set()}
@@ -615,7 +677,7 @@ function pageMovie(id){
 function pageCinema(id){
   const c=DB.byC[id];
   if(!c){view.innerHTML='<div class="empty"><b>找不到這間影城</b><br><a class="btn" href="#/cinemas">回到影城列表</a></div>';sub.innerHTML='';return}
-  document.title=c.name+'｜開場';
+  document.title=c.name+'｜Reeltime';
   sub.innerHTML='';
   const ms=DB.movies.filter(m=>m.status!=='soon'||m.presale);
   const count=d=>ms.reduce((a,m)=>a+showsOf(c.id,m.id,d).length,0);
@@ -639,13 +701,13 @@ function pageCinema(id){
   view.innerHTML=html+foot();
 }
 
-function foot(){return `<div class="foot">場次整理自各影城官網，每天早上更新一次，訂票前請以官網為準。<br><button data-act="about">資料來源與更新狀態</button>・<button data-act="privacy">隱私說明</button></div>`}
+function foot(){return `<div class="foot">場次整理自各影城官網，每天多次自動更新，訂票前請以官網為準。<br><button data-act="about">資料來源與更新狀態</button>・<button data-act="privacy">隱私說明</button></div>`}
 
 /* ================= 面板 ================= */
 let sheetOpen=false, ignorePop=0;
-function openSheet(html,label,full){
+function openSheet(html,label,full,cls){
   if(!sheetOpen){history.pushState({sheet:1},'');sheetOpen=true}
-  layer.innerHTML=`<div class="ov${full?' top':''}" id="ov"><div class="sheet${full?' full':''}" role="dialog" aria-modal="true" aria-label="${esc(label||'')}">${full?'':'<div class="grab"></div>'}${html}</div></div>`;
+  layer.innerHTML=`<div class="ov${full?' top':''}" id="ov"><div class="sheet${full?' full':''}${cls?' '+cls:''}" role="dialog" aria-modal="true" aria-label="${esc(label||'')}">${full?'':'<div class="grab"></div>'}${html}</div></div>`;
   $('#ov').addEventListener('click',e=>{if(e.target.id==='ov')closeSheet()});
   document.body.style.overflow='hidden';
   // 只對明確標 autofocus 的欄位（搜尋框）自動聚焦；其他面板聚焦在面板本身，
@@ -808,11 +870,11 @@ function ticketSheet(i){
   const other=c.chain==='其他影城'; // 由開眼取得的獨立影城：連到該影城官網（沒有官網時連開眼時刻表）
   const who=other?c.name:(c.chain||'官網');
   const viaAt=other&&/atmovies/.test(ticketUrl(c,m,s));
-  openSheet(`<h2>${esc(m.title)}</h2><div class="sum"><div><span>影城</span><b>${esc(c.name)}</b></div><div><span>時間</span><b>${md(s.date)} ${esc(s.time)}</b></div>${s.format||s.hall?`<div><span>版本／廳</span><b>${[s.format,s.hall].filter(Boolean).map(esc).join('・')}</b></div>`:''}${s.seats==='low'?'<div><span>座位</span><b style="color:var(--warn)">剩不多</b></div>':''}</div>
+  S.leaveOpen=false; // 出發時間預設收合，主按鈕固定在面板底部
+  openSheet(`<div class="tk-body"><h2>${esc(m.title)}</h2><div class="sum"><div><span>影城</span><b>${esc(c.name)}</b></div><div><span>時間</span><b>${md(s.date)} ${esc(s.time)}</b></div>${s.format||s.hall?`<div><span>版本／廳</span><b>${[s.format,s.hall].filter(Boolean).map(esc).join('・')}</b></div>`:''}${s.seats==='low'?'<div><span>座位</span><b style="color:var(--warn)">剩不多</b></div>':''}</div>
   <div id="leave">${leaveHTML(s,c)}</div>
-  <a class="btn pri block" href="${esc(ticketUrl(c,m,s))}" target="_blank" rel="noopener noreferrer">${viaAt?'查看這間影城的時刻表':'到'+esc(who)+(other?'官網':'')+'訂票'}</a>
-  <div class="note">${direct?'會直接打開這個場次的訂票頁。':viaAt?'這間影城沒有線上訂票網站，可到現場購票或來電詢問。':`${esc(who)}官網沒有單一場次的連結，打開後請再選一次 ${md(s.date)} ${esc(s.time)} 這場。`}${other?'場次資料來自開眼電影網。':''}票價、座位以官網為準。</div>
-  <div class="sheet-foot"><button class="btn" data-act="close">返回場次</button></div>`,'訂票');
+  <div class="note">${direct?'會直接打開這個場次的訂票頁。':viaAt?'這間影城沒有線上訂票網站，可到現場購票或來電詢問。':`${esc(who)}官網沒有單一場次的連結，打開後請再選一次 ${md(s.date)} ${esc(s.time)} 這場。`}${other?'場次資料來自開眼電影網。':''}票價、座位以官網為準。</div></div>
+  <div class="tk-foot"><button class="btn sec" data-act="close">返回</button><a class="btn pri" href="${esc(ticketUrl(c,m,s))}" target="_blank" rel="noopener noreferrer">${viaAt?'查看這間影城的時刻表':'到'+esc(who)+(other?'官網':'')+'訂票'}</a></div>`,'訂票',false,'tk');
   S.leaveFor=i;
   if(!(c.id in TRAVELBIN))loadTravelBin(c.id).then(()=>{if(S.leaveFor===i)refreshLeave()});
   if(!S.here&&store.get('geoOK',false))getHere(false).then(()=>refreshLeave());
@@ -843,7 +905,7 @@ function leaveHTML(s,c){
   const opts=[];for(let b=0;b<=120;b+=5)opts.push(b);if(!opts.includes(buf))opts.push(buf),opts.sort((x,y)=>x-y);
   const bufSel=`<label class="lv-sel"><select id="lvBuf" aria-label="提早幾分鐘到">${opts.map(b=>`<option value="${b}"${b===buf?' selected':''}>${b?b+' 分鐘':'不用提早'}</option>`).join('')}</select>${ICON.down}</label>`;
   const g=cGeo(c);
-  let main, exact=false;
+  let main, exact=false, leaveAt=null;
   if(!g) main=`<p class="lv-note">這間影城的位置還沒建立，請直接用地圖 App 規劃，記得在 <b>${hm(arrive)}</b> 前抵達。</p>`;
   else if(!S.here){
     const denied=store.get('geoDenied',false);
@@ -861,9 +923,12 @@ function leaveHTML(s,c){
     }
     const leave=new Date(arrive.getTime()-hi*60000), left=Math.round((leave-Date.now())/60000);
     const lt=left<0?`<span class="lv-late">現在出發可能會遲到</span>`:left<60?`還有 ${left} 分鐘`:left<24*60?`還有 ${Math.floor(left/60)} 小時 ${left%60} 分`:'';
+    leaveAt=leave;
     main=`<div class="lv-big"><span>最晚</span><b>${hm(leave)}</b><span>出門</span></div><div class="lv-sub">${lt}${lt?'・':''}距離約 ${kmTxt(km)}・${MODES[mode].label}約 ${lo}–${hi} 分鐘・${hm(arrive)} 抵達</div>`;
   }
-  return `<div class="leave"><div class="lv-h">${ICON.clock||''}<b>出發時間</b><span>${exact?'已算路網與班表':'推估'}</span></div>${main}
+  // 預設收合成一列：有位置顯示「最晚 HH:MM 出門」，沒位置顯示「規劃出發時間」；點開才看交通方式與地圖
+  if(!S.leaveOpen)return `<button class="lv-fold" data-act="leavetoggle" aria-expanded="false">${ICON.clock}<span>${leaveAt?`最晚 <b>${hm(leaveAt)}</b> 出門`:'規劃出發時間'}</span><span class="go">›</span></button>`;
+  return `<div class="leave"><button class="lv-h" data-act="leavetoggle" aria-expanded="true">${ICON.clock||''}<b>出發時間</b><span>${exact?'已算路網與班表':'推估'}</span></button>${main}
   <div class="lv-row"><span>交通</span><div class="opts">${modes}</div></div>
   <div class="lv-row"><span>提早到</span>${bufSel}<span class="lv-hint">取票、買爆米花的時間</span></div>
   ${mapLinks(c,mode,arrive)}<div class="lv-tiny">${exact?'已依這間影城附近的真實道路與公開班表試算，仍抓了一點緩衝時間；要看即時路況請按「Google 地圖」。':'上面是依直線距離的粗估，沒算塞車與班次。按「Google 地圖」會直接用「'+pad(arrive.getHours())+':'+pad(arrive.getMinutes())+' 抵達」查實際路線，看最晚哪一班車。'}</div></div>`;
@@ -890,6 +955,7 @@ function privacySheet(){
   <ul class="pv">
   <li>沒有帳號、沒有廣告、沒有追蹤或分析工具，也不用 Cookie。</li>
   <li>常用影城、縣市只存在你自己的手機瀏覽器裡。</li>
+  <li><b>追蹤場次</b>：你選的電影、日期、時段、地區只存在你自己的手機裡（瀏覽器儲存空間），<b>不會上傳</b>，也沒有帳號。通知是手機自己把最新場次表和你的條件比對後在手機上跳出來的，沒有推播伺服器；背景檢查（支援的瀏覽器）也只讀取本網站的場次檔。</li>
   <li>點「前往官網訂票」後會打開影城官網，之後就是影城的隱私政策。</li>
   </ul>
   <h4>不想用定位</h4>
@@ -898,7 +964,7 @@ function privacySheet(){
 }
 function aboutSheet(){
   openSheet(`<h2>資料來源與更新狀態</h2>
-  <div class="note" style="margin:0 0 12px">${DB.demo?'目前顯示示範內容。':'每天早上 8 點自動到各影城官網抓取場次。'}${DB.updatedAt&&!DB.demo?'最近一次：'+fmtTime(DB.updatedAt)+'。':''}「下次公布」標示「官方」的是影城自己公告的時間，其他是依過去規律推估。</div>
+  <div class="note" style="margin:0 0 12px">${DB.demo?'目前顯示示範內容。':'每天多次自動到各影城官網抓取場次（完整更新約 08:00、14:00、18:00、20:00、21:00，另外在各影城公布新場次的時段加抓）。'}${DB.updatedAt&&!DB.demo?'最近一次：'+fmtTime(DB.updatedAt)+'。':''}「下次公布」標示「官方」的是影城自己公告的時間，其他是依過去規律推估。</div>
   ${DB.status.length?`<div class="sum">${DB.status.map(x=>`<div><span>${esc(x.chain)}</span><b style="color:${x.ok?'var(--ok)':'var(--red)'}">${x.ok?(x.shows?x.shows+' 場':'正常'):'更新失敗，顯示前次資料'}</b></div>`).join('')}</div>`:''}
   <div class="sheet-foot"><button class="btn" data-act="reload">重新載入</button><button class="btn pri" data-act="close">關閉</button></div>
   <details><summary>載入自己的場次檔（測試用）</summary><textarea id="pasteBox" aria-label="貼上 JSON" placeholder='{"movies":[],"cinemas":[],"showtimes":[]}'></textarea><div class="sheet-foot" style="margin-top:8px"><button class="btn" id="loadPaste">載入貼上的內容</button><label class="btn" style="cursor:pointer">選擇檔案<input id="fileIn" type="file" accept="application/json,.json" hidden></label></div></details>`,'資料來源');
@@ -910,19 +976,187 @@ function loadJSON(txt){
   }catch(e){toast('載入失敗：'+e.message)}
 }
 
+/* ================= 追蹤場次 =================
+ * 沒有伺服器，所以「通知」靠兩條路：1) 打開 App 時比對（boot → watchCheck）；
+ * 2) Service Worker 的 Periodic Background Sync 背景比對（Android Chrome 安裝成 App 後才有）。
+ * 兩邊用 watch-core.js 同一套規則。追蹤資料存 localStorage（twc.watches），並鏡像一份到 IndexedDB 給背景程式讀。 */
+const WC=WatchCore;
+S.watches=store.get('watches',[]);if(!Array.isArray(S.watches))S.watches=[];
+S.watchOpen=new Set();S.watchShown={};S.wDel=null;S.wbOff=false;
+let WS=null;
+const notifyPerm=()=>'Notification' in window?Notification.permission:'unsupported';
+const newTotal=()=>{const n=new Date();return S.watches.reduce((a,w)=>a+(WC.expired(w,n)?0:(w.newKeys||[]).length),0)};
+function saveWatches(){
+  const t=Date.now();S.watches.forEach(w=>w.rev=t);
+  store.set('watches',S.watches);
+  WC.idbSet('watches',JSON.parse(JSON.stringify(S.watches))).catch(()=>{});
+}
+async function loadWatches(){
+  let local=store.get('watches',null),idb=null;
+  try{idb=await WC.idbGet('watches')}catch(e){}
+  if(!Array.isArray(local))local=Array.isArray(idb)?idb:[];
+  else if(Array.isArray(idb)){const m=new Map(idb.map(w=>[w.id,w]));local=local.map(w=>{const o=m.get(w.id);return o&&(o.rev||0)>(w.rev||0)?o:w})} // 背景程式比較新就用它的
+  S.watches=local;
+}
+// 跳系統通知（頁面與測試都從這裡走；Android 要透過 Service Worker 才能跳）
+async function showNote(title,opts){
+  try{
+    if(!('Notification' in window)||Notification.permission!=='granted')return false;
+    opts={icon:'icon-192.png',badge:'icon-192.png',renotify:true,data:{url:'./#/watch'},...opts};
+    const reg=('serviceWorker' in navigator)?await navigator.serviceWorker.getRegistration():null;
+    if(reg){await reg.showNotification(title,opts);return true}
+    new Notification(title,opts);return true;
+  }catch(e){return false}
+}
+async function watchCheck(){
+  if(!DB||DB.demo)return 0;
+  await loadWatches();
+  WC.idbSet('favs',[...S.favs]).catch(()=>{});
+  const now=new Date(),favs=[...S.favs];let total=0;
+  for(const w of S.watches){
+    const r=WC.refresh(w,{showtimes:DB.shows,cinemas:DB.cinemas},favs,now);
+    if(r.fresh.length){total+=r.fresh.length;const t=WC.noteText(w,r.fresh,DB.byC);showNote(t.title,{body:t.body,tag:'twc-'+w.id})}
+  }
+  if(S.watches.length)saveWatches();
+  return total;
+}
+async function registerBackground(){
+  try{
+    if(!('serviceWorker' in navigator))return;
+    const reg=await navigator.serviceWorker.register('sw.js',{scope:'./'});
+    await navigator.serviceWorker.ready;
+    if('periodicSync' in reg){try{await reg.periodicSync.register('twc-watch',{minInterval:6*3600*1000})}catch(e){}}
+  }catch(e){}
+}
+async function watchStart(){
+  if(!DB||DB.demo)return;
+  try{
+    const n=await watchCheck();
+    if(S.watches.length)registerBackground();
+    if(n||S.route==='watch')render(true);else watchChrome();
+  }catch(e){}
+}
+function watchChrome(){
+  const n=newTotal(),b=document.querySelector('.tabbar .bdg');
+  if(b){b.hidden=!n;b.textContent=n>99?'99+':String(n)}
+  if(n&&S.route!=='watch'&&!S.wbOff)view.insertAdjacentHTML('afterbegin',`<div class="wbanner" role="status">${ICON.bell}<span>追蹤的電影有 <b>${n}</b> 個新場次</span><a href="#/watch">看看</a><button data-act="wbclose" aria-label="關閉提示">${ICON.x}</button></div>`);
+}
+const watchTmp=()=>({movie:WS.movie,area:WS.area,dates:[...WS.dates].sort(),from:WS.from,to:WS.to});
+const watchMatches=w=>WC.matching(w,DB.shows,DB.cinemas,[...S.favs],new Date());
+function watchPrev(){const n=watchMatches(watchTmp()).length;return `目前有 <b>${n}</b> 場符合${n?'（這些算已看過，只有之後新增的才會通知你）':''}`}
+function watchSheet(mid,opt){
+  opt=opt||{};
+  if(opt.edit){
+    const w=S.watches.find(x=>x.id===opt.edit);if(!w)return;
+    WS={id:w.id,movie:w.movie,title:w.title,area:w.area,dates:new Set((w.dates||[]).filter(d=>d>=todayS)),from:w.from||'',to:w.to||'',done:null};
+  }else{
+    const m=DB.byM[mid];if(!m)return;
+    const ex=S.watches.find(x=>x.movie===mid);
+    if(ex)return watchSheet(null,{edit:ex.id}); // 一部電影一筆追蹤，已追蹤就改成編輯
+    WS={id:null,movie:mid,title:m.title,area:S.city,dates:new Set(),from:'',to:'',done:null};
+    if(opt.prefill){if(S.date>=todayS)WS.dates.add(S.date);WS.from=S.from;WS.to=S.to}
+  }
+  openSheet(watchHTML(),'追蹤新場次');
+}
+function watchSheetRefresh(){const sh=layer.querySelector('.sheet');const y=sh?sh.scrollTop:0;openSheet(watchHTML(),'追蹤新場次');const n=layer.querySelector('.sheet');if(n)n.scrollTop=y}
+function watchHTML(){
+  const w=WS,m=DB.byM[w.movie]||{title:w.title};
+  if(w.done){
+    const perm=notifyPerm(),rec=S.watches.find(x=>x.id===w.id);
+    const ask=perm==='default';
+    return `<h2>${w.done.created?'已開始追蹤':'已儲存'}</h2><p style="margin:0 0 8px">《${esc(w.title)}》${rec?esc(WC.summary(rec)):''}</p>
+    <div class="notice" style="margin-bottom:12px">目前已有 <b>${w.done.n}</b> 場符合${w.done.n?`。<a href="#/movie/${encodeURIComponent(w.movie)}" style="color:var(--red)">先去看看 ›</a>`:'，有新場次出現時會提醒你。'}</div>
+    ${ask?`<p style="margin:0 0 4px;font-size:14px">要開啟系統通知嗎？有新場次時，手機會跳出通知。比對只在你的手機上進行，不經過任何伺服器。</p><div class="sheet-foot"><button class="btn" data-act="close">先不要</button><button class="btn pri" data-act="notifyon">開啟通知</button></div>`
+      :`<p style="margin:0 0 4px;font-size:13px;color:var(--ink2)">${perm==='granted'?'系統通知已開啟，有新場次會跳通知。':perm==='denied'?'通知目前被封鎖，只會在 App 裡用紅點提示。到手機或瀏覽器的網站設定可以重新允許。':'這個瀏覽器不支援系統通知，打開 App 時會用紅點提示。'}</p><div class="sheet-foot"><a class="btn" href="#/watch">看追蹤清單</a><button class="btn pri" data-act="close">完成</button></div>`}`;
+  }
+  const areas=[];
+  if(S.city!=='全台')areas.push([S.city,S.city]);
+  if(w.area!=='全台'&&w.area!=='fav'&&!areas.some(a=>a[0]===w.area))areas.push([w.area,w.area]);
+  areas.push(['全台','全台']);
+  if(S.favs.size||w.area==='fav')areas.push(['fav','只看常用影城']);
+  const days=Array.from({length:14},(_,i)=>ymd(addDays(TODAY,i)));
+  return `<h2>${w.id?'編輯追蹤':'追蹤新場次'}</h2>
+  <div class="w-mv"><div class="poster">${posterImg(m)}</div><b>${esc(w.title)}</b></div>
+  <h4>地區</h4><div class="w-opts">${areas.map(([v,l])=>`<button class="chip" data-warea="${esc(v)}" aria-pressed="${w.area===v}">${esc(l)}</button>`).join('')}</div>
+  <h4>日期（選填）</h4><div class="w-opts"><button class="chip" data-wdate="" aria-pressed="${!w.dates.size}">不限</button>${days.map(d=>`<button class="chip" data-wdate="${d}" aria-pressed="${w.dates.has(d)}">${md(d)}</button>`).join('')}</div>
+  <h4>時段（選填）</h4><div class="trange"><label><span>從</span><input type="time" id="wFrom" value="${w.from}" aria-label="開始時間"></label><label><span>到</span><input type="time" id="wTo" value="${w.to}" aria-label="結束時間"></label></div><div class="note" style="margin-top:6px">留空表示不限。凌晨 0–3 點的午夜場算在當天晚上。</div>
+  <div class="w-prev" id="wPrev">${watchPrev()}</div>
+  <div class="sheet-foot">${w.id?'<button class="btn" data-act="wcancel">取消追蹤</button>':'<button class="btn" data-act="close">返回</button>'}<button class="btn pri" data-act="wsave">${w.id?'儲存':'開始追蹤'}</button></div>`;
+}
+function watchSave(){
+  const w=WS,created=!w.id,now=new Date(),base={movie:w.movie,title:w.title,area:w.area,dates:[...w.dates].sort(),from:w.from,to:w.to};
+  const matches=watchMatches(base);
+  let rec;
+  if(w.id){
+    rec=S.watches.find(x=>x.id===w.id);if(!rec)return;
+    Object.assign(rec,base);
+    const cur=new Set(matches.map(WC.keyOf)),nk=new Set(rec.newKeys||[]);
+    rec.newKeys=[...nk].filter(k=>cur.has(k));
+    rec.seen=[...new Set([...(rec.seen||[]),...cur].filter(k=>!nk.has(k)))]; // 改條件後，目前符合的都算已看過（還沒看的新場次保留）
+  }else{
+    rec={id:'w'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),...base,seen:[],newKeys:[],created:now.getTime()};
+    WC.markSeen(rec,matches);S.watches.push(rec);
+  }
+  rec.checkedAt=now.getTime();
+  saveWatches();registerBackground();
+  WS.id=rec.id;WS.done={n:matches.length,created};
+  watchSheetRefresh();
+  render(true); // 底下的頁面（電影頁的「追蹤中」、追蹤頁清單、紅點）同步更新
+}
+async function askNotify(){
+  if(!('Notification' in window)){toast('這個瀏覽器不支援系統通知');return}
+  let p='default';
+  try{p=await Notification.requestPermission()}catch(e){}
+  toast(p==='granted'?'已開啟通知':p==='denied'?'通知被封鎖，之後可到手機或瀏覽器設定重新允許':'沒有開啟通知');
+  if(p==='granted')registerBackground();
+  if(sheetOpen&&WS&&WS.done)watchSheetRefresh();
+  if(S.route==='watch')render(true);
+}
+function pageWatch(){
+  sub.innerHTML='';document.title='追蹤｜Reeltime';
+  const perm=notifyPerm(),bg='serviceWorker' in navigator&&'PeriodicSyncManager' in window,now=new Date();
+  const permLine=perm==='unsupported'?'系統通知：這個瀏覽器不支援，只能在打開 App 時看到提示。'
+    :perm==='granted'?'系統通知：<b>已開啟</b>。'
+    :perm==='denied'?'系統通知：<b>被封鎖</b>。要跳通知，請到手機或瀏覽器的網站設定允許；沒有通知時，仍會用紅點提示。'
+    :'系統通知：<b>尚未開啟</b>。<div class="row2"><button class="btn pri" data-act="notifyon">開啟通知</button></div>';
+  let html=`<div class="wnote"><b>怎麼通知你</b>：打開 Reeltime 時自動比對，有新場次就顯示紅點並跳通知。沒開 App 時，Android Chrome 安裝成 App 後會在背景定期檢查${bg?'（這個瀏覽器支援）':'（這個瀏覽器不支援，要打開 App 才會檢查）'}；iPhone 不支援背景檢查。網站沒有伺服器，無法即時推播。<br>${permLine}</div>`;
+  const list=S.watches.slice().sort((a,b)=>(b.newKeys||[]).length-(a.newKeys||[]).length||(b.created||0)-(a.created||0));
+  if(!list.length){
+    html+=`<div class="empty"><b>還沒有追蹤的電影</b>在電影頁按「追蹤新場次」，之後有符合的新場次就通知你。還沒開賣的電影也能先追蹤，開賣時通知你。<br><a class="btn" href="#/">去選電影</a> <a class="btn" href="#/soon">看即將上映</a></div>`;
+    return void(view.innerHTML=html+foot());
+  }
+  html+=`<div class="sec-h"><h2>追蹤中</h2><span>${list.length} 部</span></div>`;
+  for(const w of list){
+    const m=DB.byM[w.movie]||{title:w.title},end=WC.expired(w,now),nn=end?0:(w.newKeys||[]).length;
+    const matches=end?[]:watchMatches(w),open=S.watchOpen.has(w.id);
+    const st=end?'<span class="w-st end">已結束（追蹤的日期都過了）</span>':nn?`<span class="w-st new">${nn} 個新場次</span>`:`<span class="w-st">目前 ${matches.length} 場符合</span>`;
+    let body='';
+    if(open){
+      const byK=new Map(matches.map(s=>[WC.keyOf(s),s]));
+      const shown=(S.watchShown[w.id]||[]).map(k=>byK.get(k)).filter(Boolean);
+      const isNew=shown.length>0,l=(isNew?shown:matches).slice().sort((a,b)=>a.date.localeCompare(b.date)||(DB.byC[a.cinema].name).localeCompare(DB.byC[b.cinema].name,'zh-Hant')||tkey(a.time).localeCompare(tkey(b.time)));
+      const groups=new Map();for(const s of l){const k=s.date+'|'+s.cinema;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(s)}
+      body=`<div class="w-list">${l.length?(isNew?`<div class="fg-l" style="margin-top:10px"><b>新增的 ${l.length} 場</b>（已標示為看過）</div>`:'')+[...groups].map(([k,g])=>`<div class="fg"><div class="fg-l">${md(g[0].date)}・${esc(DB.byC[g[0].cinema].name)}</div>${stubsHTML(g)}</div>`).join(''):`<div class="note">${end?'這筆追蹤的日期都已經過了。':'目前沒有符合的場次，有新場次時會通知你。'}</div>`}<a class="lnk cin-more" href="#/movie/${encodeURIComponent(w.movie)}">看這部電影的所有場次 ›</a></div>`;
+    }
+    html+=`<div class="wcard"><div class="w-top"><button class="w-main" data-watchtog="${esc(w.id)}" aria-expanded="${open}"><div class="poster">${posterImg(m)}</div><div class="w-info"><h3>${esc(w.title)}</h3><div class="sub">${esc(WC.summary(w))}</div>${st}</div></button><div class="w-act"><button data-watchedit="${esc(w.id)}">編輯</button><button class="del${S.wDel===w.id?' arm':''}" data-watchdel="${esc(w.id)}">${S.wDel===w.id?'確定取消？':'刪除'}</button></div></div>${body}</div>`;
+  }
+  view.innerHTML=html+foot();
+}
+
 /* ================= 路由與繪製 ================= */
 function parseRoute(){
   const h=location.hash.replace(/^#\/?/,'');const [r,id]=h.split('/');
-  S.route=({cinemas:'cinemas',soon:'soon',movie:'movie',cinema:'cinema'})[r]||'now';
+  S.route=({cinemas:'cinemas',soon:'soon',watch:'watch',movie:'movie',cinema:'cinema'})[r]||'now';
   S.id=id?decodeURIComponent(id):null;
 }
 function render(keepScroll){
   if(!DB)return;
   const y=window.scrollY;
-  document.title='開場｜全台電影場次';
+  document.title='Reeltime｜全台電影場次';
   bar.innerHTML=topBar();
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.nav===S.route)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
-  if(S.route==='now')pageNow();else if(S.route==='soon')pageSoon();else if(S.route==='cinemas')pageCinemas();else if(S.route==='movie')pageMovie(S.id);else pageCinema(S.id);
+  if(S.route==='now')pageNow();else if(S.route==='soon')pageSoon();else if(S.route==='cinemas')pageCinemas();else if(S.route==='watch')pageWatch();else if(S.route==='movie')pageMovie(S.id);else pageCinema(S.id);
+  watchChrome();
   if(keepScroll)window.scrollTo(0,y);
   const sel=sub.querySelector('.d[aria-pressed=true]')||view.querySelector('.d[aria-pressed=true]');
   if(sel){const p=sel.parentElement;p.scrollLeft=Math.max(0,sel.offsetLeft-p.clientWidth/2+sel.offsetWidth/2)}
@@ -955,6 +1189,22 @@ document.addEventListener('click',e=>{
   if(d.setcity){S.city=d.setcity;store.set('city',S.city);store.set('askedCity',true);store.set('cityMode','manual');if(sheetOpen)closeSheet();return render()}
   if(d.fav){toggleFav(d.fav);return render(true)}
   if(d.toggle){const id=d.toggle,el=t.closest('.cin'),op=el&&el.classList.contains('open');if(op){S.open.delete(id);S.closed.add(id)}else{S.open.add(id);S.closed.delete(id)}render(true);const n=document.querySelector(`[data-toggle="${CSS.escape(id)}"]`);n&&n.focus({preventScroll:true});return}
+  if(d.watch)return watchSheet(d.watch);
+  if(d.watchnew)return watchSheet(d.watchnew,{prefill:true});
+  if(d.watchedit)return watchSheet(null,{edit:d.watchedit});
+  if(d.watchdel){
+    const id=d.watchdel;
+    if(S.wDel===id){S.watches=S.watches.filter(w=>w.id!==id);S.wDel=null;S.watchOpen.delete(id);saveWatches();toast('已取消追蹤');return render(true)}
+    S.wDel=id;setTimeout(()=>{if(S.wDel===id){S.wDel=null;if(S.route==='watch')render(true)}},4000);return render(true);
+  }
+  if(d.watchtog){
+    const id=d.watchtog,w=S.watches.find(x=>x.id===id);
+    if(S.watchOpen.has(id))S.watchOpen.delete(id);
+    else{S.watchOpen.add(id);if(w&&(w.newKeys||[]).length){S.watchShown[id]=[...w.newKeys];WC.markSeen(w,[]);saveWatches()}else delete S.watchShown[id]} // 看過了：新場次併入已看過
+    return render(true);
+  }
+  if(d.warea!==undefined&&WS){WS.area=d.warea;return watchSheetRefresh()}
+  if(d.wdate!==undefined&&WS){if(d.wdate==='')WS.dates.clear();else WS.dates.has(d.wdate)?WS.dates.delete(d.wdate):WS.dates.add(d.wdate);return watchSheetRefresh()}
   if(d.show){return ticketSheet(+d.show)}
   switch(d.act){
     case 'back':return navCount>0?history.back():(location.hash=S.route==='cinema'?'#/cinemas':'#/');
@@ -967,6 +1217,12 @@ document.addEventListener('click',e=>{
     case 'expandall':document.querySelectorAll('[data-toggle]').forEach(b=>{S.open.add(b.dataset.toggle);S.closed.delete(b.dataset.toggle)});return render(true);
     case 'collapseall':document.querySelectorAll('[data-toggle]').forEach(b=>{S.open.delete(b.dataset.toggle);S.closed.add(b.dataset.toggle)});return render(true);
     case 'geo':return locateMe(true);
+    case 'geobaroff':store.set('geoBarOff',true);return render(true);
+    case 'leavetoggle':S.leaveOpen=!S.leaveOpen;return refreshLeave();
+    case 'wsave':return watchSave();
+    case 'wcancel':{const id=WS&&WS.id;S.watches=S.watches.filter(w=>w.id!==id);saveWatches();closeSheet();toast('已取消追蹤');return render(true)}
+    case 'notifyon':return askNotify();
+    case 'wbclose':S.wbOff=true;return render(true);
     case 'leavegeo':{const el=document.getElementById('leave');if(el)el.querySelector('.leave').classList.add('busy');getHere(true).then(h=>{refreshLeave();if(!h)toast(store.get('geoDenied',false)?'沒有定位權限，可改用地圖 App 規劃':'暫時取得不到位置')});return}
     case 'geooff':store.set('geoOK',false);store.set('cityMode','manual');closeSheet();return toast('已停止自動定位，之後會沿用你目前的縣市');
     case 'syn':{const p=$('#syn');p.classList.toggle('open');t.textContent=p.classList.contains('open')?'收合簡介':'展開簡介';return}
@@ -982,6 +1238,7 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='lvBuf'){store.set('travelBuf',+e.target.value);refreshLeave();return}
+  if((e.target.id==='wFrom'||e.target.id==='wTo')&&WS){WS[e.target.id==='wFrom'?'from':'to']=e.target.value||'';const p=$('#wPrev');if(p)p.innerHTML=watchPrev();return}
   if(e.target.id==='tFrom'||e.target.id==='tTo'){S[e.target.id==='tFrom'?'from':'to']=e.target.value||'';render(true);return}if(e.target.id==='fileIn'&&e.target.files[0]){const r=new FileReader();r.onload=()=>loadJSON(r.result);r.readAsText(e.target.files[0])}});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&sheetOpen)closeSheet();
@@ -991,7 +1248,7 @@ document.addEventListener('keydown',e=>{
 function fmtTime(iso){const d=new Date(iso);if(isNaN(d))return '';return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
 async function boot(force){
   parseRoute();
-  if(!DB){bar.innerHTML=`<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div>開場<small>全台電影場次</small></div></div>`;view.innerHTML=`<div class="grid">${Array.from({length:6},()=>'<div><div class="skel" style="aspect-ratio:2/3"></div><div class="skel" style="height:14px;margin-top:8px;width:80%"></div></div>').join('')}</div>`}
+  if(!DB){bar.innerHTML=`<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><span class="bn">Reeltime</span><small>全台電影場次</small></div></div>`;view.innerHTML=`<div class="grid">${Array.from({length:6},()=>'<div><div class="skel" style="aspect-ratio:2/3"></div><div class="skel" style="height:14px;margin-top:8px;width:80%"></div></div>').join('')}</div>`}
   try{
     const r=await fetch('data.json'+(force?'?t='+Date.now():''),{cache:'no-cache'});
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -1001,9 +1258,19 @@ async function boot(force){
   }catch(e){LOAD_ERR=e.message;setData(demoData())}
   loadCinemaGeo().then(()=>{if(S.here)render(true)});
   render();
+  watchStart();
   // 自動定位：沒手動選過縣市、也沒拒絕過定位權限時才做
   if(!DB.demo&&cityMode()==='auto'&&store.get('geoOK',false)&&!store.get('geoDenied',false))locateMe(false);
 }
+// 通知被點開時（App 已開著），背景程式會傳訊息過來，帶到「追蹤」頁
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.goto)location.hash=e.data.goto});
+// 久未使用後回到 App：重新載入場次並比對；否則只同步背景程式寫入的新場次
+let hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  if(hiddenAt&&Date.now()-hiddenAt>20*60*1000&&!sheetOpen)boot();
+  else if(S.watches.length)loadWatches().then(()=>{if(S.route==='watch')render(true);else watchChrome()});
+});
 boot();
 </script>
 </body>
