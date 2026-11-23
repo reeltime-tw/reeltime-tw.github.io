@@ -1,0 +1,90 @@
+{
+ "items": [
+  {
+   "chain": "美麗華",
+   "label": "美麗華",
+   "key": "美麗華",
+   "kind": "once",
+   "at": "2026-11-24T18:00",
+   "text": "*** 11/24(二)18:00後開放 11/26-12/03 數位版、Dolby Cinem",
+   "rangeFrom": "2026-11-26",
+   "rangeTo": "2026-12-03",
+   "source": "https://www.miramarcinemas.tw/Home/startordertime"
+  },
+  {
+   "chain": "美麗華",
+   "label": "美麗華",
+   "key": "美麗華",
+   "kind": "once",
+   "at": "2026-12-02T18:00",
+   "text": "購票服務 12/02(三)18:00後開放 12/04-12/10 數位版、Dolby Cinem",
+   "rangeFrom": "2026-12-04",
+   "rangeTo": "2026-12-10",
+   "source": "https://www.miramarcinemas.tw/Home/startordertime"
+  },
+  {
+   "chain": "美麗華",
+   "label": "美麗華",
+   "key": "美麗華",
+   "kind": "once",
+   "at": "2026-12-09T18:00",
+   "text": "購票服務 12/09(三)18:00後開放 12/11-12/15 數位版、Dolby Cinem",
+   "rangeFrom": "2026-12-11",
+   "rangeTo": "2026-12-15",
+   "source": "https://www.miramarcinemas.tw/Home/startordertime"
+  },
+  {
+   "chain": "美麗新",
+   "label": "美麗新",
+   "key": "美麗新",
+   "kind": "weekly",
+   "dow": 3,
+   "time": "18:00",
+   "text": "週五上映之電影,於當週三下午18:00後公布場次,開放當週五至下週四之場次訂購票。 週三上映之電影",
+   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
+  },
+  {
+   "chain": "美麗新",
+   "label": "美麗新",
+   "key": "美麗新",
+   "kind": "weekly",
+   "dow": 1,
+   "time": "18:00",
+   "text": "週三上映之電影,於當週一下午18:00後公布場次,開放當週三及週四之場次訂購票。 週四上映之電影,",
+   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
+  },
+  {
+   "chain": "美麗新",
+   "label": "美麗新",
+   "key": "美麗新",
+   "kind": "weekly",
+   "dow": 2,
+   "time": "18:00",
+   "text": "週四上映之電影,於當週二下午18:00後公布場次,開放當週四之場次訂購票。 如因預售或連續假期影響",
+   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
+  }
+ ],
+ "sources": [
+  {
+   "key": "樂聲",
+   "chain": "樂聲",
+   "label": "樂聲",
+   "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "美麗華",
+   "chain": "美麗華",
+   "label": "美麗華",
+   "status": "ok",
+   "pages": 5
+  },
+  {
+   "key": "美麗新",
+   "chain": "美麗新",
+   "label": "美麗新",
+   "status": "ok",
+   "pages": 2
+  }
+ ]
+}

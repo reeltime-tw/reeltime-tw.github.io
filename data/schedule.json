@@ -1,0 +1,116 @@
+{
+ "tasks": [
+  {
+   "name": "公布 全部補查",
+   "chains": [],
+   "triggers": [
+    {
+     "kind": "daily",
+     "reason": "補查：威秀、秀泰、國賓、新光、喜樂時代、in89 與 41 間獨立影城官網都沒有公布時間，除了早上 8 點，下午再全部查一次（第三方說法威秀「週三下午」更新）",
+     "source": "data/publish-rules.json",
+     "time": "14:00",
+     "offsets": [
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "name": "公布 美麗華",
+   "chains": [
+    "美麗華"
+   ],
+   "triggers": [
+    {
+     "kind": "once",
+     "at": "2026-11-24T18:00",
+     "reason": "官網公告「*** 11/24(二)18:00後開放 11/26-12/03 數位版、Dol」",
+     "source": "https://www.miramarcinemas.tw/Home/startordertime",
+     "offsets": [
+      10,
+      45
+     ]
+    },
+    {
+     "kind": "once",
+     "at": "2026-12-02T18:00",
+     "reason": "官網公告「購票服務 12/02(三)18:00後開放 12/04-12/10 數位版、Do」",
+     "source": "https://www.miramarcinemas.tw/Home/startordertime",
+     "offsets": [
+      10,
+      45
+     ]
+    },
+    {
+     "kind": "once",
+     "at": "2026-12-09T18:00",
+     "reason": "官網公告「購票服務 12/09(三)18:00後開放 12/11-12/15 數位版、Do」",
+     "source": "https://www.miramarcinemas.tw/Home/startordertime",
+     "offsets": [
+      10,
+      45
+     ]
+    }
+   ]
+  },
+  {
+   "name": "公布 美麗新",
+   "chains": [
+    "美麗新"
+   ],
+   "triggers": [
+    {
+     "kind": "weekly",
+     "dow": 1,
+     "time": "18:00",
+     "reason": "官網公告「週三上映之電影,於當週一下午18:00後公布場次,開放當週三及週四之場次訂購票。」",
+     "source": "https://www.miranewcinemas.com/Booking/StartOrderTime",
+     "offsets": [
+      10,
+      45
+     ]
+    },
+    {
+     "kind": "weekly",
+     "dow": 2,
+     "time": "18:00",
+     "reason": "官網公告「週四上映之電影,於當週二下午18:00後公布場次,開放當週四之場次訂購票。 如因」",
+     "source": "https://www.miranewcinemas.com/Booking/StartOrderTime",
+     "offsets": [
+      10,
+      45
+     ]
+    },
+    {
+     "kind": "weekly",
+     "dow": 3,
+     "time": "18:00",
+     "reason": "官網公告「週五上映之電影,於當週三下午18:00後公布場次,開放當週五至下週四之場次訂購票」",
+     "source": "https://www.miranewcinemas.com/Booking/StartOrderTime",
+     "offsets": [
+      10,
+      45
+     ]
+    }
+   ]
+  },
+  {
+   "name": "公布 樂聲",
+   "chains": [
+    "樂聲"
+   ],
+   "triggers": [
+    {
+     "kind": "daily",
+     "reason": "官方規則：每日場次最晚於前一天 20:00 前公布並開放訂票（樂聲官網，2026-11 確認；官網目前找不到這段文字，若之後被改請更新）",
+     "source": "data/publish-rules.json",
+     "time": "20:00",
+     "offsets": [
+      10,
+      45
+     ]
+    }
+   ]
+  }
+ ]
+}
