@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 gtfs_out/
 *.zip
+windows/last-full-success.txt

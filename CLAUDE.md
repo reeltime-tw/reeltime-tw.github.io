@@ -40,7 +40,10 @@ GitHub Actions（.github/workflows/update.yml「發布網站」）
 | `docs/icon.svg`、`docs/icon-*.png`、`docs/apple-touch-icon.png`、`docs/manifest.webmanifest` | App 名稱「開場」與圖示（紅底白票根＋播放符號）；PNG 由 `node tools/make-icons.cjs` 從 icon.svg 產生。manifest 讓手機「加入主畫面」後全螢幕開啟 |
 | `docs/data.json`、`docs/raw/*.json`、`docs/posters/` | 由使用者電腦產生並提交。`raw/` 是各影城上次成功的原始資料（某家失敗時沿用） |
 | `windows/setup.ps1` | 一次性設定：裝 Git/Node、clone 到 `%USERPROFILE%\tw-cinema`、建排程（WakeToRun）、開喚醒計時器、先跑一次 |
-| `windows/update.ps1` | 每日執行；用 SetThreadExecutionState 防止執行中睡著；紀錄在 `windows/update.log` |
+| `windows/update.ps1` | 更新主程式。參數 `-Only "美麗新,樂聲"`（只更新指定連鎖）、`-IfStale 18`（距上次完整更新超過 18 小時才跑，補跑用）；用具名 Mutex 避免同時跑兩份；用 SetThreadExecutionState 防止執行中睡著；紀錄在 `windows/update.log`，完整更新成功時間記在 `windows/last-full-success.txt` |
+| `windows/sync-schedule.ps1` | 依 `data/schedule.json` 在 Windows 排程器建立／更新／刪除「tw-cinema 公布 …」排程，並確保「補跑」排程存在。update.ps1 每次跑完會自動呼叫；`-DryRun` 只預覽 |
+| `scrape/announce.mjs` | 公告爬蟲：讀官網公開頁面，找出「何時公布場次」（單次／每週／每天），寫入 `data/announcements.json`。**不處理 Facebook／IG／LINE**（需登入、違反平台條款） |
+| `scrape/schedule.mjs` | 把公告＋`data/publish-rules.json`（手動規則）算成 `data/schedule.json` |
 | `test/mock.mjs` | 用模擬回應跑完整流程（結構依實際官網觀察而寫） |
 | `test/mock-fail.mjs` | 測試單一影城失敗時沿用舊資料 |
 | `test/ui.py` | Playwright 截圖測 App |
@@ -125,6 +128,15 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 ## 進行中：App 內精確路程時間
 
 使用者要求在 App 內精確估算路程，同時位置不離開手機。完整計畫、環境限制與任務順序在 **`plans/travel-time.md`**，執行前先讀。
+
+## 公布時段自動排程（2026-11-24 新增）
+
+流程：每次更新後 → `announce.mjs` 讀官網公告 → `schedule.mjs` 產生 `data/schedule.json` → `sync-schedule.ps1` 在 Windows 排程器建立排程。到了公布時間，排程會跑 `update.ps1 -Only <連鎖>`，公布後第 10 分鐘與第 45 分鐘各抓一次（官網與各平台更新有時間差）。
+- 目前排程（工作排程器裡以「tw-cinema」開頭）：每日更新 08:00（完整）、「公布 全部補查」每天 14:00（完整）、「公布 美麗新」週一／二／三 18:10 與 18:45、「公布 美麗華」依官網公告的單次時間（過期自動刪、新公告自動加）、「公布 樂聲」每天 20:10 與 20:45、「補跑（醒來或登入時）」登入或從睡眠醒來 2 分鐘後，若超過 18 小時沒完整更新就補跑（對策 11/23 電腦沒醒來漏跑）。
+- **社群（Facebook／IG／LINE）不自動爬**，在粉專看到公告時，手動加進 `data/publish-rules.json`（格式寫在檔案開頭「說明」），下次更新就會排程。
+- 新增連鎖或影城時：官網若有公布說明，把網址加進 `announce.mjs` 的 `FIXED`／`CHAIN_SITES`；沒有就寫手動規則。
+- 測試：`node test/announce.test.mjs`、`node test/schedule.test.mjs`；`node scrape/announce.mjs --dry` 實際掃描不寫檔；`node scrape/schedule.mjs --print` 看排程清單。
+- 排程用 Interactive 登入類型，**重開機後要登入一次**才會執行（與每日更新相同）。
 
 ## 各影城場次公布時間與管道（2026-11-24 整理）
 
