@@ -428,6 +428,7 @@ a.wcard .go{align-self:center;color:var(--ink3);font-size:22px;padding:0 2px}
 /* 追蹤分頁：新增入口與專用選片畫面 */
 .wadd{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;margin-bottom:12px;border-radius:14px;background:var(--red);color:#fff;text-align:left;box-shadow:0 2px 6px rgba(179,18,46,.25)}
 .wadd>svg{width:24px;height:24px;flex:0 0 auto;padding:4px;border-radius:50%;background:rgba(255,255,255,.18);box-sizing:content-box}
+.wstat .perr{display:block;font-size:12px;color:var(--warn);margin-top:2px;word-break:break-all}
 .wadd span{display:grid;gap:1px}.wadd b{font-size:16px}.wadd small{font-size:12.5px;opacity:.9}
 .wadd.more{justify-content:center;background:none;color:var(--red);border:1.5px dashed #e6b3bd;box-shadow:none;margin-top:4px}
 .wadd.more>svg{background:var(--red-soft);padding:2px;width:18px;height:18px}
@@ -1113,7 +1114,9 @@ function saveWatches(){
   const t=Date.now();S.watches.forEach(w=>w.rev=t);
   store.set('watches',S.watches);
   WC.idbSet('watches',JSON.parse(JSON.stringify(S.watches))).catch(()=>{});
-  pushSync(); // 推播已開啟時，把最新的追蹤條件同步到推播伺服器（內容沒變不會重送）
+  // 推播已開啟時，把最新的追蹤條件同步到推播伺服器（內容沒變不會重送）；狀態有變就更新追蹤頁的狀態列
+  const before=store.get('pushOn',false)+'|'+(S.pushErr||'');
+  pushSync().then(()=>{if(S.route==='watch'&&before!==store.get('pushOn',false)+'|'+(S.pushErr||''))render(true)});
 }
 async function loadWatches(){
   let local=store.get('watches',null),idb=null;
@@ -1166,26 +1169,30 @@ const fnv=s=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCo
 let pushBusy=null;
 function pushSync(force){
   if(pushBusy)return pushBusy;
+  // S.pushErr：沒連上時的原因（顯示在追蹤頁，方便使用者回報）
   pushBusy=(async()=>{
+    let step='檢查';
     try{
-      if(!pushCapable()||Notification.permission!=='granted')return false;
+      if(!pushCapable()){S.pushErr=isIOS&&!isStandalone()?'要從主畫面的 Reeltime 圖示打開':'這個瀏覽器不支援推播';return false}
+      if(Notification.permission!=='granted'){S.pushErr='還沒允許通知';return false}
       const dev=pushDevice(),list=S.watches.filter(w=>!WC.expired(w,new Date()));
       if(!list.length){ // 沒有追蹤了：連伺服器上的資料一起刪除
+        S.pushErr='還沒有追蹤的電影';
         if(store.get('pushOn',false)){await fetch(PUSH_URL+'/device/'+dev,{method:'DELETE'});store.set('pushOn',false);store.set('pushSig','')}
         return false;
       }
-      const reg=await navigator.serviceWorker.register('sw.js',{scope:'./'});await navigator.serviceWorker.ready;
-      let sub=await reg.pushManager.getSubscription();
+      step='註冊背景程式';const reg=await navigator.serviceWorker.register('sw.js',{scope:'./'});await navigator.serviceWorker.ready;
+      step='取得推播位址';let sub=await reg.pushManager.getSubscription();
       if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUBLIC)});
       const favs=[...S.favs];
       const watches=list.map(w=>({id:w.id,movie:w.movie,title:w.title,area:w.area,dates:w.dates||[],dateFrom:w.dateFrom||'',dateTo:w.dateTo||'',from:w.from||'',to:w.to||'',favs:w.area==='fav'?favs:[]}));
       const body=JSON.stringify({subscription:sub.toJSON(),watches}),sig=fnv(body);
-      if(!force&&sig===store.get('pushSig','')&&store.get('pushOn',false)&&Date.now()-store.get('pushAt',0)<7*864e5)return true;
-      const r=await fetch(PUSH_URL+'/device/'+dev,{method:'PUT',headers:{'Content-Type':'application/json'},body});
+      if(!force&&sig===store.get('pushSig','')&&store.get('pushOn',false)&&Date.now()-store.get('pushAt',0)<7*864e5){S.pushErr='';return true}
+      step='連線推播伺服器';const r=await fetch(PUSH_URL+'/device/'+dev,{method:'PUT',headers:{'Content-Type':'application/json'},body});
       if(!r.ok)throw new Error('HTTP '+r.status);
-      store.set('pushSig',sig);store.set('pushAt',Date.now());store.set('pushOn',true);
+      store.set('pushSig',sig);store.set('pushAt',Date.now());store.set('pushOn',true);S.pushErr='';
       return true;
-    }catch(e){return false}
+    }catch(e){S.pushErr=step+'失敗：'+String(e&&(e.message||e.name)||e).slice(0,80);store.set('pushOn',false);return false}
   })();
   const p=pushBusy;p.finally(()=>{if(pushBusy===p)pushBusy=null});
   return p;
@@ -1313,7 +1320,7 @@ function watchNotifyBar(){
   if(isIOS&&!isStandalone())return bar('','要在 App 沒開時收到通知，需先加入主畫面','<button class="lnk" data-act="whow">怎麼做</button>');
   if(perm==='denied')return bar('warn','通知被封鎖，只會在 App 內提示',how);
   if(perm==='unsupported'||!pushCapable())return bar('','這個瀏覽器不支援推播，打開 App 時才會提示',how);
-  if(perm==='granted')return bar('','推播還沒連上，下次打開 App 會再試',how);
+  if(perm==='granted')return bar('warn',`推播還沒連上${S.pushErr?`<small class="perr">原因：${esc(S.pushErr)}</small>`:''}`,'<button class="btn pri sm" data-act="pushretry">重新連線</button>');
   return bar('','開啟通知，有新場次時通知你','<button class="btn pri sm" data-act="notifyon">開啟通知</button>');
 }
 function howSheet(){
@@ -1485,6 +1492,7 @@ document.addEventListener('click',e=>{
     case 'wcancel':{const id=WS&&WS.id;S.watches=S.watches.filter(w=>w.id!==id);saveWatches();closeSheet();toast('已取消追蹤');if(S.route==='watch'&&S.id===id)setTimeout(()=>{location.hash='#/watch'},50);return render(true)}
     case 'whow':return howSheet();
     case 'wpick':return watchPickSheet();
+    case 'pushretry':t.disabled=true;t.textContent='連線中…';return pushSync(true).then(ok=>{toast(ok?'推播已開啟':'還是沒連上：'+(S.pushErr||'原因不明'));render(true)});
     case 'notifyon':return askNotify();
     case 'wbclose':S.wbOff=true;return render(true);
     case 'leavegeo':{const el=document.getElementById('leave');if(el)el.querySelector('.leave').classList.add('busy');getHere(true).then(h=>{refreshLeave();if(!h)toast(store.get('geoDenied',false)?'沒有定位權限，可改用地圖 App 規劃':'暫時取得不到位置')});return}
