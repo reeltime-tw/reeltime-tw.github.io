@@ -1357,8 +1357,7 @@ function pageWatch(){
       ${end?'<div class="w-st">已結束：追蹤的日期都過了</div>':next.length?`<div class="w-next">${next.map(s=>`<span><b>${s.time}</b>${mdShort(s.date)} ${esc(cinShort(DB.byC[s.cinema]?.name))}</span>`).join('')}</div>`:'<div class="w-st">目前沒有符合的場次，有新場次時通知你</div>'}
       </div><span class="go" aria-hidden="true">›</span></a>`;
   }
-  html+=`<button class="wadd more" data-act="wpick">${ICON.plus}<b>追蹤另一部電影</b></button>`;
-  view.innerHTML=html+foot();
+  view.innerHTML=html+foot(); // 新增入口只放頁面最上面一個，避免重複
 }
 /* 追蹤專用的選片畫面（上方全螢幕，可搜尋）：選好直接打開追蹤設定，不經過一般電影頁 */
 function watchPickSheet(){
