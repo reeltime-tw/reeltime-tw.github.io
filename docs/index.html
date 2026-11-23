@@ -489,6 +489,8 @@ a.wcard .w-info{padding-left:8px}
 /* 影城列表：橫式電影票。缺口用 mask 在「票面右側上下角」與「票根左側上下角」各切四分之一圓，合起來就是撕線兩端的半圓缺口；
  * 票根右緣用 conic-gradient 切成鋸齒。陰影放在外層 .ctk 的 filter（被 mask 的元件 box-shadow 會被切掉） */
 .ctks{display:grid;gap:10px}
+.stale-tag{height:28px;padding:0 10px;border-radius:14px;background:var(--warn-soft);color:var(--warn);font-size:12.5px;font-weight:600;white-space:nowrap}
+.foot>b{font-family:var(--num);font-size:14px;letter-spacing:.3px;color:var(--ink2)}
 .ctk{display:flex;min-height:84px;filter:drop-shadow(0 0 .6px rgba(22,24,29,.35)) drop-shadow(0 2px 3px rgba(22,24,29,.07))}
 .ctk-main{flex:1;min-width:0;display:flex;align-items:flex-start;gap:4px;padding:12px 6px 12px 14px;background:var(--surface);border-radius:12px 0 0 12px;
   -webkit-mask:linear-gradient(#000 0 0) left/51% 100% no-repeat,radial-gradient(circle at 100% 0,#0000 7px,#000 7.5px) top right/51% 51% no-repeat,radial-gradient(circle at 100% 100%,#0000 7px,#000 7.5px) bottom right/51% 51% no-repeat;
@@ -719,8 +721,9 @@ function topBar(){
     const t=S.route==='movie'?DB.byM[S.id]?.title:S.route==='cinema'?DB.byC[S.id]?.name:'追蹤：'+((S.watches||[]).find(w=>w.id===S.id)?.title||'');
     return `<button class="back" data-act="back" aria-label="返回">${ICON.back}</button><div class="bar-t">${esc(t||'')}</div>${S.route==='watch'?'':`<button class="loc" data-act="loc">${ICON.pin}${esc(S.city)}${ICON.down}</button>`}`;
   }
+  // 主分頁頂部只留縣市與搜尋；品牌與「幾分鐘前更新」移到頁尾。資料超過一天沒更新時，才在這裡用小標籤提醒
   const ago=DB&&!DB.demo&&DB.updatedAt?fmtAgo(DB.updatedAt):null;
-  return `<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><span class="bn">Reeltime</span><small class="${ago&&ago.stale?'stale':''}">${esc(ago?ago.t:'全台電影場次')}</small></div></div><button class="loc" data-act="loc" aria-label="地區：${esc(S.city)}，點擊切換">${ICON.pin}${esc(S.city)}${ICON.down}</button><button class="ibtn" data-act="search" aria-label="搜尋電影或影城">${ICON.search}</button>`;
+  return `<button class="loc" data-act="loc" aria-label="地區：${esc(S.city)}，點擊切換">${ICON.pin}${esc(S.city)}${ICON.down}</button>${ago&&ago.stale?'<button class="stale-tag" data-act="about">資料偏舊</button>':''}<span style="margin-right:auto"></span><button class="ibtn" data-act="search" aria-label="搜尋電影或影城">${ICON.search}</button>`;
 }
 function demoBanner(){
   if(!DB.demo)return '';
@@ -747,7 +750,7 @@ function pageNow(){
       :`<div class="empty"><b>這個條件下沒有場次</b>${S.date===todayS?'今天的場次可能都已開演。':''}試試其他日期，或放寬篩選條件。<br>${filterCount()?'<button class="btn" data-act="clear">清除篩選</button> ':''}${S.city!=='全台'?`<button class="btn" data-setcity="全台">改看全台</button>`:''}<a class="btn" href="#/soon">看即將上映</a></div>`;
   }else{
     html+=`<div class="sec-h"><h2>${dayName(S.date)} ${md(S.date).replace(/（.）/,'')} 有 ${list.length} 部電影</h2><span>${esc(S.city)}${S.chains.size?'・'+esc([...S.chains].join('、')):''}</span></div>`;
-    html+=`<div class="grid">${list.map(([m,r])=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.status==='soon'?'<span class="flag">預售</span>':''}</div><div class="mv-s"><h3>${esc(m.title)}</h3><p>下一場<b>${r.next}</b></p><p class="c">${r.c} 間影城有場次</p></div></a>`).join('')}</div>`;
+    html+=`<div class="grid">${list.map(([m,r])=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.status==='soon'?'<span class="flag">預售</span>':''}</div><div class="mv-s"><h3>${esc(m.title)}</h3></div></a>`).join('')}</div>`;
   }
   html+=foot();
   view.innerHTML=html;
@@ -887,7 +890,10 @@ function pageCinema(id){
   view.innerHTML=html+foot();
 }
 
-function foot(){return `<div class="foot">場次整理自各影城官網，每天多次自動更新，訂票前請以官網為準。<br><button data-act="about">資料來源與更新狀態</button>・<button data-act="privacy">隱私說明</button></div>`}
+function foot(){
+  const ago=DB&&!DB.demo&&DB.updatedAt?fmtAgo(DB.updatedAt):null;
+  return `<div class="foot"><b>Reeltime</b>${ago?`・${esc(ago.t)}`:''}<br>場次整理自各影城官網，每天多次自動更新，訂票前請以官網為準。<br><button data-act="about">資料來源與更新狀態</button>・<button data-act="privacy">隱私說明</button></div>`;
+}
 
 /* ================= 面板 ================= */
 let sheetOpen=false, ignorePop=0;
@@ -1597,7 +1603,7 @@ document.addEventListener('keydown',e=>{
 function fmtTime(iso){const d=new Date(iso);if(isNaN(d))return '';return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
 async function boot(force){
   parseRoute();
-  if(!DB){bar.innerHTML=`<div class="brand"><img src="icon-192.png" alt="" width="30" height="30"><div><span class="bn">Reeltime</span><small>全台電影場次</small></div></div>`;view.innerHTML=`<div class="grid">${Array.from({length:6},()=>'<div><div class="skel" style="aspect-ratio:2/3"></div><div class="skel" style="height:14px;margin-top:8px;width:80%"></div></div>').join('')}</div>`}
+  if(!DB){bar.innerHTML='';view.innerHTML=`<div class="grid">${Array.from({length:6},()=>'<div><div class="skel" style="aspect-ratio:2/3"></div><div class="skel" style="height:14px;margin-top:8px;width:80%"></div></div>').join('')}</div>`}
   try{
     const r=await fetch('data.json'+(force?'?t='+Date.now():''),{cache:'no-cache'});
     if(!r.ok)throw new Error('HTTP '+r.status);
