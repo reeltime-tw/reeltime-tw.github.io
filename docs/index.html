@@ -486,6 +486,24 @@ a.wcard .w-info{padding-left:8px}
 .wempty{border:0;border-radius:0;padding:30px 18px calc(28px + var(--zz));filter:none;
   -webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/calc(2*var(--zz)) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) 51% repeat-x;
           mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/calc(2*var(--zz)) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) 51% repeat-x}
+/* 影城列表：橫式電影票。缺口用 mask 在「票面右側上下角」與「票根左側上下角」各切四分之一圓，合起來就是撕線兩端的半圓缺口；
+ * 票根右緣用 conic-gradient 切成鋸齒。陰影放在外層 .ctk 的 filter（被 mask 的元件 box-shadow 會被切掉） */
+.ctks{display:grid;gap:10px}
+.ctk{display:flex;min-height:84px;filter:drop-shadow(0 0 .6px rgba(22,24,29,.35)) drop-shadow(0 2px 3px rgba(22,24,29,.07))}
+.ctk-main{flex:1;min-width:0;display:flex;align-items:flex-start;gap:4px;padding:12px 6px 12px 14px;background:var(--surface);border-radius:12px 0 0 12px;
+  -webkit-mask:linear-gradient(#000 0 0) left/51% 100% no-repeat,radial-gradient(circle at 100% 0,#0000 7px,#000 7.5px) top right/51% 51% no-repeat,radial-gradient(circle at 100% 100%,#0000 7px,#000 7.5px) bottom right/51% 51% no-repeat;
+          mask:linear-gradient(#000 0 0) left/51% 100% no-repeat,radial-gradient(circle at 100% 0,#0000 7px,#000 7.5px) top right/51% 51% no-repeat,radial-gradient(circle at 100% 100%,#0000 7px,#000 7.5px) bottom right/51% 51% no-repeat}
+.ctk-main .main{flex:1;min-width:0;text-decoration:none;color:inherit}
+.ctk-main h3{margin:0;font-size:15.5px;line-height:1.35}
+.ctk-main .sub{font-size:13px;color:var(--ink2)}
+.ctk-main .star{margin:-6px 0 0}
+.ctk-stub{flex:0 0 78px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px calc(4px + var(--zz)) 8px 4px;background:var(--surface);border-left:1.5px dashed var(--perf);text-decoration:none;color:var(--ink2);line-height:1.15;
+  -webkit-mask:radial-gradient(circle at 0 0,#0000 7px,#000 7.5px) top left/51% 51% no-repeat,radial-gradient(circle at 0 100%,#0000 7px,#000 7.5px) bottom left/51% 51% no-repeat,conic-gradient(from 225deg at right,#0000,#000 1deg 89deg,#0000 90deg) right/51% calc(2*var(--zz)) repeat-y;
+          mask:radial-gradient(circle at 0 0,#0000 7px,#000 7.5px) top left/51% 51% no-repeat,radial-gradient(circle at 0 100%,#0000 7px,#000 7.5px) bottom left/51% 51% no-repeat,conic-gradient(from 225deg at right,#0000,#000 1deg 89deg,#0000 90deg) right/51% calc(2*var(--zz)) repeat-y}
+.ctk-stub small{font-size:11.5px}
+.ctk-stub b{font-family:var(--num);font-size:30px;font-weight:700;color:var(--red);line-height:1;margin:2px 0}
+.ctk-stub.none span{font-size:13px;color:var(--ink3);margin-top:2px}
+.ctk:hover .ctk-main h3{color:var(--red)}
 /* 列表分隔改成淡淡的撕線 */
 .row{border-top-style:dashed;border-top-color:var(--line)}
 </style>
@@ -749,9 +767,11 @@ function pageSoon(){
 }
 
 /* 影城列表 */
+/* 影城列表：一間影城一張橫式電影票。左邊票面（影城資訊、星號）、直向撕線、右邊票根（今天還有幾場，右緣鋸齒撕邊） */
 function cinemaRow(c){
   const n=DB.movies.reduce((a,m)=>a+showsOf(c.id,m.id,todayS).filter(s=>!isPast(s)).length,0);
-  return `<div class="row"><a class="main" href="#/cinema/${encodeURIComponent(c.id)}" style="text-decoration:none"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}</div>${pubLine(c)}</a><a class="side${n?'':' none'}" href="#/cinema/${encodeURIComponent(c.id)}" style="text-decoration:none" aria-hidden="true" tabindex="-1">${n?`<b>${n}</b>今天還有`:'今天無場次'}</a><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button></div>`;
+  const href='#/cinema/'+encodeURIComponent(c.id);
+  return `<div class="ctk"><div class="ctk-main"><a class="main" href="${href}"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}</div>${pubLine(c)}</a><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button></div><a class="ctk-stub${n?'':' none'}" href="${href}" aria-hidden="true" tabindex="-1">${n?`<small>今天還有</small><b>${n}</b><small>場</small>`:'<small>今天</small><span>無場次</span>'}</a></div>`;
 }
 function pageCinemas(){
   sub.innerHTML=`<div style="padding:8px 0 10px"><label class="search">${ICON.search}<span class="sr">搜尋影城</span><input id="cq" type="search" placeholder="搜尋影城名稱或品牌" value="${esc(S.cq)}" autocomplete="off"></label></div>`;
@@ -763,10 +783,10 @@ function renderCinemaList(){
   const favs=DB.cinemas.filter(c=>isFav(c.id)&&match(c));
   const rest=DB.cinemas.filter(c=>!isFav(c.id)&&match(c)&&(q||S.city==='全台'||c._city===S.city));
   let html=demoBanner();
-  if(favs.length)html+=`<div class="sec-h"><h2>常用影城</h2><span>${favs.length} 間</span></div><div class="list">${favs.map(cinemaRow).join('')}</div>`;
+  if(favs.length)html+=`<div class="sec-h"><h2>常用影城</h2><span>${favs.length} 間</span></div><div class="ctks">${favs.map(cinemaRow).join('')}</div>`;
   else if(!q)html+=`<div class="note" style="margin:0 0 12px">點影城右邊的星號加入常用，會固定排在最前面。</div>`;
   const by=new Map();for(const c of rest){if(!by.has(c._city))by.set(c._city,[]);by.get(c._city).push(c)}
-  for(const [city,cs] of by)html+=`<div class="sec-h"><h2>${esc(city)}</h2><span>${cs.length} 間</span></div><div class="list">${cs.map(cinemaRow).join('')}</div>`;
+  for(const [city,cs] of by)html+=`<div class="sec-h"><h2>${esc(city)}</h2><span>${cs.length} 間</span></div><div class="ctks">${cs.map(cinemaRow).join('')}</div>`;
   if(!favs.length&&!rest.length)html+=`<div class="empty"><b>找不到「${esc(S.cq)}」</b>試試品牌名稱，例如「威秀」。</div>`;
   if(!q&&S.city!=='全台')html+=`<div style="text-align:center;margin-top:16px"><button class="btn" data-setcity="全台">看全台影城</button></div>`;
   view.innerHTML=html+foot();
