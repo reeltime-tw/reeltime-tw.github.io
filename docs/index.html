@@ -176,7 +176,7 @@ svg.bell{width:18px;height:18px;flex:0 0 auto}
 
 .cin-l{display:flex;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
 .cin-l:first-of-type{border-top:0;padding-top:0}
-.cin-l .poster{width:56px;flex:0 0 auto;border-radius:6px}
+.cin-l .poster{width:56px;flex:0 0 auto;border-radius:6px;align-self:flex-start} /* 場次多時不要被拉長 */
 .cin-l .main{flex:1;min-width:0}
 .cin-l h3{margin:0 0 2px;font-size:15px}
 .cin-l h3 button{text-align:left}
@@ -436,6 +436,58 @@ a.wcard .go{align-self:center;color:var(--ink3);font-size:22px;padding:0 2px}
 .row.wp .poster{width:44px;flex:0 0 auto;border-radius:6px}
 .wp-on{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--red);background:var(--red-soft);padding:2px 8px;border-radius:8px}
 .wp-go{flex:0 0 auto;width:32px;height:32px;border-radius:16px;display:grid;place-items:center;color:var(--red);background:var(--red-soft)}.wp-go svg{width:18px;height:18px}
+
+/* ===== 票根設計語言（2026-11-24）=====
+ * 撕線＋半圓缺口：票的正券與副券分隔（.perf、.tix-cut、電影卡海報與片名之間、影城頁每部片之間）
+ * 鋸齒撕邊：被撕下的票根（電影卡底部、訂票票根底部、空狀態上下）
+ * 直向撕線：追蹤卡的海報當左側票根（.vperf）
+ * 票形日期：日期列選中的那天，兩側有缺口
+ * 缺口用「頁面底色的圓」蓋在卡片邊上（卡片放在 --bg 底色上時成立）；鋸齒用 mask，陰影改由外層 filter 產生 */
+:root{--perf:#bfc5ce;--zz:5px}
+.perf{position:relative;height:0;border-top:1.5px dashed var(--perf);margin:12px -14px 2px}
+.perf::before,.perf::after,.tix-cut::before,.tix-cut::after{content:"";position:absolute;top:-9px;width:16px;height:16px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.perf::before{left:-9px;clip-path:inset(0 0 0 50%)}.perf::after{right:-9px;clip-path:inset(0 50% 0 0)}
+.tix-cut{border-top:1.5px dashed var(--perf)}
+.sheet.tk,.sheet.tk .tk-foot{background:var(--bg)} /* 訂票面板用淺灰底，白色票根才浮得出來、缺口看得見 */
+.sheet.tk .lv-fold,.sheet.tk .leave{background:var(--surface)}
+/* 電影卡：海報是票面，下方是撕下來的票根 */
+.mv{filter:drop-shadow(0 0 .6px rgba(22,24,29,.35)) drop-shadow(0 2px 3px rgba(22,24,29,.07))}
+.mv .poster{border-radius:10px 10px 0 0;
+  -webkit-mask:radial-gradient(circle at 0 100%,#0000 6px,#000 6.5px) left/51% 100% no-repeat,radial-gradient(circle at 100% 100%,#0000 6px,#000 6.5px) right/51% 100% no-repeat;
+          mask:radial-gradient(circle at 0 100%,#0000 6px,#000 6.5px) left/51% 100% no-repeat,radial-gradient(circle at 100% 100%,#0000 6px,#000 6.5px) right/51% 100% no-repeat}
+.mv-s{position:relative;background:var(--surface);padding:8px 9px calc(10px + var(--zz));border-top:1.5px dashed var(--perf);
+  -webkit-mask:radial-gradient(circle at 0 0,#0000 6px,#000 6.5px) top left/51% 51% no-repeat,radial-gradient(circle at 100% 0,#0000 6px,#000 6.5px) top right/51% 51% no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) 50% repeat-x;
+          mask:radial-gradient(circle at 0 0,#0000 6px,#000 6.5px) top left/51% 51% no-repeat,radial-gradient(circle at 100% 0,#0000 6px,#000 6.5px) top right/51% 51% no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) 50% repeat-x}
+.mv-s h3{margin:0}
+.mv{display:flex;flex-direction:column}.mv-s{flex:1} /* 同一排的票根一樣高，鋸齒邊對齊 */
+.mv p.c{font-size:12px;color:var(--ink3);margin-top:0}
+.mv:hover .mv-s h3{color:var(--red)}
+/* 訂票票根：底部鋸齒 */
+.tixw{filter:drop-shadow(0 0 .6px rgba(22,24,29,.4)) drop-shadow(0 2px 4px rgba(22,24,29,.08))}
+.tixw .tix{border:0;box-shadow:none;border-radius:14px 14px 0 0;padding-bottom:var(--zz);
+  -webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--zz)) no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) calc(var(--zz) + 1px) repeat-x;
+          mask:linear-gradient(#000 0 0) top/100% calc(100% - var(--zz)) no-repeat,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) calc(var(--zz) + 1px) repeat-x}
+.tixw .tix-cut::before,.tixw .tix-cut::after{border-color:transparent}
+/* 影城頁：一間影城一張長票，每部片之間是撕線 */
+.cin-l{position:relative;border-top:1.5px dashed var(--perf)}
+.cin-l:first-of-type{border-top:0}
+.cin-l:not(:first-of-type)::before,.cin-l:not(:first-of-type)::after{content:"";position:absolute;top:-9px;width:16px;height:16px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.cin-l:not(:first-of-type)::before{left:-23px;clip-path:inset(0 0 0 50%)}.cin-l:not(:first-of-type)::after{right:-23px;clip-path:inset(0 50% 0 0)}
+/* 追蹤卡：海報是左側票根 */
+a.wcard{overflow:visible}
+.vperf{position:absolute;left:80px;top:0;bottom:0;border-left:1.5px dashed var(--perf)}
+.vperf::before,.vperf::after{content:"";position:absolute;left:-9px;width:16px;height:16px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.vperf::before{top:-9px;clip-path:inset(50% 0 0 0)}.vperf::after{bottom:-9px;clip-path:inset(0 0 50% 0)}
+a.wcard.has-new .vperf::before,a.wcard.has-new .vperf::after{border-color:var(--red)}
+a.wcard .w-info{padding-left:8px}
+/* 票形日期：選中的那天兩側有缺口 */
+.d[aria-pressed=true]{border-radius:8px;background:radial-gradient(circle at 0 50%,#0000 5px,var(--ink) 5.5px) left/51% 100% no-repeat,radial-gradient(circle at 100% 50%,#0000 5px,var(--ink) 5.5px) right/51% 100% no-repeat}
+/* 空狀態：上下都是撕邊的票 */
+.wempty{border:0;border-radius:0;padding:30px 18px calc(28px + var(--zz));filter:none;
+  -webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/calc(2*var(--zz)) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) 51% repeat-x;
+          mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/calc(2*var(--zz)) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/calc(2*var(--zz)) 51% repeat-x}
+/* 列表分隔改成淡淡的撕線 */
+.row{border-top-style:dashed;border-top-color:var(--line)}
 </style>
 </head>
 <body>
@@ -677,7 +729,7 @@ function pageNow(){
       :`<div class="empty"><b>這個條件下沒有場次</b>${S.date===todayS?'今天的場次可能都已開演。':''}試試其他日期，或放寬篩選條件。<br>${filterCount()?'<button class="btn" data-act="clear">清除篩選</button> ':''}${S.city!=='全台'?`<button class="btn" data-setcity="全台">改看全台</button>`:''}<a class="btn" href="#/soon">看即將上映</a></div>`;
   }else{
     html+=`<div class="sec-h"><h2>${dayName(S.date)} ${md(S.date).replace(/（.）/,'')} 有 ${list.length} 部電影</h2><span>${esc(S.city)}${S.chains.size?'・'+esc([...S.chains].join('、')):''}</span></div>`;
-    html+=`<div class="grid">${list.map(([m,r])=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.status==='soon'?'<span class="flag">預售</span>':''}</div><h3>${esc(m.title)}</h3><p>下一場<b>${r.next}</b>・${r.c}間</p></a>`).join('')}</div>`;
+    html+=`<div class="grid">${list.map(([m,r])=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.status==='soon'?'<span class="flag">預售</span>':''}</div><div class="mv-s"><h3>${esc(m.title)}</h3><p>下一場<b>${r.next}</b></p><p class="c">${r.c} 間影城有場次</p></div></a>`).join('')}</div>`;
   }
   html+=foot();
   view.innerHTML=html;
@@ -691,7 +743,7 @@ function pageSoon(){
   if(!l.length){view.innerHTML=html+'<div class="empty"><b>目前沒有即將上映的電影</b></div>'+foot();return}
   const by=new Map();for(const m of l){const k=m.release||'未定';if(!by.has(k))by.set(k,[]);by.get(k).push(m)}
   for(const [d,ms] of by){
-    html+=`<div class="sec-h"><h2>${d==='未定'?'上映日未定':md(d)+' 上映'}</h2><span>${ms.length} 部</span></div><div class="grid">${ms.map(m=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.presale?'<span class="flag">預售</span>':''}</div><h3>${esc(m.title)}</h3><p>${metaLine(m)||'&nbsp;'}</p></a>`).join('')}</div>`;
+    html+=`<div class="sec-h"><h2>${d==='未定'?'上映日未定':md(d)+' 上映'}</h2><span>${ms.length} 部</span></div><div class="grid">${ms.map(m=>`<a class="mv" href="#/movie/${encodeURIComponent(m.id)}"><div class="poster">${posterImg(m)}${rateTag(m)}${m.presale?'<span class="flag">預售</span>':''}</div><div class="mv-s"><h3>${esc(m.title)}</h3><p>${metaLine(m)||'&nbsp;'}</p></div></a>`).join('')}</div>`;
   }
   view.innerHTML=html+foot();
 }
@@ -780,7 +832,7 @@ function pageMovie(id){
       const op=isOpen(c);
       const next=show.slice(0,4).map(x=>x.time).join('　');
       const fmts=[...new Set(show.map(x=>x.format).filter(Boolean))];
-      html+=`<div class="cin fold${op?' open':''}"><div class="cin-h"><button class="main tog" data-toggle="${esc(c.id)}" aria-expanded="${op}"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}${cDist(c)!=null?`・<span class="dist">${kmTxt(cDist(c))}</span>`:''}</div>${op?'':`<div class="peek"><b>${show.length} 場</b><span>${esc(next)}${show.length>4?'…':''}</span></div>${fmts.length?`<div class="peek-f">${fmts.slice(0,3).map(esc).join('・')}${fmts.length>3?'…':''}</div>`:''}`}</button><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button><span class="chev" aria-hidden="true">${ICON.down}</span></div>${op?groupedTimes(show)+`<a class="lnk cin-more" href="#/cinema/${encodeURIComponent(c.id)}">看這間影城的所有電影 ›</a>`:''}</div>`;
+      html+=`<div class="cin fold${op?' open':''}"><div class="cin-h"><button class="main tog" data-toggle="${esc(c.id)}" aria-expanded="${op}"><h3>${esc(c.name)}</h3><div class="sub">${esc(c.chain||'')}・${esc(c._city)}${cDist(c)!=null?`・<span class="dist">${kmTxt(cDist(c))}</span>`:''}</div>${op?'':`<div class="peek"><b>${show.length} 場</b><span>${esc(next)}${show.length>4?'…':''}</span></div>${fmts.length?`<div class="peek-f">${fmts.slice(0,3).map(esc).join('・')}${fmts.length>3?'…':''}</div>`:''}`}</button><button class="star" data-fav="${esc(c.id)}" aria-pressed="${isFav(c.id)}" aria-label="${isFav(c.id)?'移出':'加入'}常用影城">${isFav(c.id)?ICON.star:ICON.starO}</button><span class="chev" aria-hidden="true">${ICON.down}</span></div>${op?'<div class="perf" aria-hidden="true"></div>'+groupedTimes(show)+`<a class="lnk cin-more" href="#/cinema/${encodeURIComponent(c.id)}">看這間影城的所有電影 ›</a>`:''}</div>`;
     }
   }
   if(pastN)html+=`<button class="past" data-act="past">${S.showPast?'隱藏已開演的場次':`顯示已開演的 ${pastN} 場`}</button>`;
@@ -989,10 +1041,10 @@ function ticketSheet(i){
   const meta=[m.rating?m.rating+'級':'',m.runtime?m.runtime+' 分鐘':''].filter(Boolean).join('・');
   const ver=[s.format,s.hall].filter(Boolean).join('・');
   openSheet(`<div class="tk-body"><div class="sh-head"><span>確認場次</span><button class="x" data-act="close" aria-label="關閉">${ICON.x}</button></div>
-  <div class="tix"><div class="tix-mv"><div class="poster">${posterImg(m,true)}</div><div><b>${esc(m.title)}</b>${meta?`<span>${esc(meta)}</span>`:''}</div></div>
+  <div class="tixw"><div class="tix"><div class="tix-mv"><div class="poster">${posterImg(m,true)}</div><div><b>${esc(m.title)}</b>${meta?`<span>${esc(meta)}</span>`:''}</div></div>
   <div class="tix-cut" aria-hidden="true"></div>
   <div class="tix-grid"><div><small>日期</small><b>${md(s.date)}</b></div><div class="r"><small>開演</small><b class="big">${esc(s.time)}</b></div>
-  <div class="wide"><small>影城</small><b>${esc(c.name)}</b></div>${ver?`<div class="wide"><small>版本／廳</small><b>${esc(ver)}</b></div>`:''}${s.seats==='low'?'<div class="wide"><b class="low">座位剩不多</b></div>':''}</div></div>
+  <div class="wide"><small>影城</small><b>${esc(c.name)}</b></div>${ver?`<div class="wide"><small>版本／廳</small><b>${esc(ver)}</b></div>`:''}${s.seats==='low'?'<div class="wide"><b class="low">座位剩不多</b></div>':''}</div></div></div>
   <div id="leave">${leaveHTML(s,c)}</div>
   <div class="tk-note">${direct?'會直接打開這場的訂票頁。':viaAt?'這間影城沒有線上訂票，可現場購票或來電詢問。':`官網打開後，請再選一次 ${md(s.date)} ${esc(s.time)} 這場。`}${other?'場次來自開眼電影網。':''}票價、座位以官網為準。</div></div>
   <div class="tk-foot"><a class="btn pri block" href="${esc(ticketUrl(c,m,s))}" target="_blank" rel="noopener noreferrer">${viaAt?'查看這間影城的時刻表':'到'+esc(who)+(other?'官網':'')+'訂票'} ↗</a></div>`,'訂票',false,'tk');
@@ -1352,7 +1404,7 @@ function pageWatch(){
     const m=DB.byM[w.movie]||{title:w.title},end=WC.expired(w,now),nn=end?0:(w.newKeys||[]).length;
     const matches=end?[]:watchMatches(w),next=matches.slice().sort(byWhen).slice(0,3);
     html+=`<a class="wcard${nn?' has-new':''}${end?' end':''}" href="#/watch/${encodeURIComponent(w.id)}">
-      <div class="poster">${posterImg(m)}${nn?`<span class="w-new">${nn} 新</span>`:''}</div>
+      <div class="poster">${posterImg(m)}${nn?`<span class="w-new">${nn} 新</span>`:''}</div><i class="vperf" aria-hidden="true"></i>
       <div class="w-info"><h3>${esc(w.title)}</h3><div class="w-tags">${WC.summaryParts(w).map(p=>`<span>${esc(p)}</span>`).join('')}</div>
       ${end?'<div class="w-st">已結束：追蹤的日期都過了</div>':next.length?`<div class="w-next">${next.map(s=>`<span><b>${s.time}</b>${mdShort(s.date)} ${esc(cinShort(DB.byC[s.cinema]?.name))}</span>`).join('')}</div>`:'<div class="w-st">目前沒有符合的場次，有新場次時通知你</div>'}
       </div><span class="go" aria-hidden="true">›</span></a>`;
@@ -1385,7 +1437,7 @@ function watchGroups(list,isNew){
     if(!days.has(s.date))days.set(s.date,new Map());
     const cm=days.get(s.date);if(!cm.has(s.cinema))cm.set(s.cinema,[]);cm.get(s.cinema).push(s);
   }
-  return [...days].map(([d,cm])=>`<div class="wd-day"><div class="wd-date">${dayName(d)}<b>${md(d)}</b></div>${[...cm].map(([cid,l])=>{const c=DB.byC[cid];return `<div class="wd-cin${isNew?' new':''}"><div class="wd-c"><b>${esc(c.name)}</b><span>${esc(c.chain||'')}${cDist(c)!=null?'・'+kmTxt(cDist(c)):''}</span>${isNew?'<i>新</i>':''}</div>${groupedTimes(l)}</div>`}).join('')}</div>`).join('');
+  return [...days].map(([d,cm])=>`<div class="wd-day"><div class="wd-date">${dayName(d)}<b>${md(d)}</b></div>${[...cm].map(([cid,l])=>{const c=DB.byC[cid];return `<div class="wd-cin${isNew?' new':''}"><div class="wd-c"><b>${esc(c.name)}</b><span>${esc(c.chain||'')}${cDist(c)!=null?'・'+kmTxt(cDist(c)):''}</span>${isNew?'<i>新</i>':''}</div><div class="perf" aria-hidden="true"></div>${groupedTimes(l)}</div>`}).join('')}</div>`).join('');
 }
 function pageWatchDetail(id){
   const w=S.watches.find(x=>x.id===id);
