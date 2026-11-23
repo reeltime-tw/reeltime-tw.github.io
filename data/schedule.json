@@ -12,6 +12,33 @@
      "offsets": [
       0
      ]
+    },
+    {
+     "kind": "daily",
+     "reason": "使用者指定：每天 18:00 完整更新一次（多數影城傍晚公布新場次）",
+     "source": "data/publish-rules.json",
+     "time": "18:00",
+     "offsets": [
+      0
+     ]
+    },
+    {
+     "kind": "daily",
+     "reason": "使用者指定：每天 20:00 完整更新一次（多數影城傍晚公布新場次）",
+     "source": "data/publish-rules.json",
+     "time": "20:00",
+     "offsets": [
+      0
+     ]
+    },
+    {
+     "kind": "daily",
+     "reason": "使用者指定：每天 21:00 完整更新一次（多數影城傍晚公布新場次）",
+     "source": "data/publish-rules.json",
+     "time": "21:00",
+     "offsets": [
+      0
+     ]
     }
    ]
   },
