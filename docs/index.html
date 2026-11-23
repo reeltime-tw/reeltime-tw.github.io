@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<!-- 隱私保護：這個網頁只能向自己的網站讀取資料，瀏覽器會擋下任何對外連線（位置不可能被送出去） -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<!-- 隱私保護：這個網頁只能向自己的網站、以及 Reeltime 推播伺服器（只在使用者開啟推播時，送出追蹤條件與推播位址）連線，瀏覽器會擋下其他任何對外連線（位置不可能被送出去） -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://reeltime-push.reeltime-tw.workers.dev; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
@@ -476,7 +476,7 @@ const isPast=s=>s.date===todayS&&s.time<nowHM()&&+s.time.slice(0,2)>=4;
 const showOK=s=>inPeriod(s.time)&&(!S.kinds.size||s._k.some(k=>S.kinds.has(k)))&&(!S.langs.size||s._l.some(l=>S.langs.has(l)));
 const areaCinemas=()=>DB.cinemas.filter(c=>(S.city==='全台'||c._city===S.city)&&(!S.chains.size||S.chains.has(c.chain)));
 const isFav=id=>S.favs.has(id);
-function toggleFav(id){S.favs.has(id)?S.favs.delete(id):S.favs.add(id);store.set('favs',[...S.favs]);WatchCore.idbSet('favs',[...S.favs]).catch(()=>{});toast(S.favs.has(id)?'已加入常用影城，會排在最前面':'已移出常用影城')}
+function toggleFav(id){S.favs.has(id)?S.favs.delete(id):S.favs.add(id);store.set('favs',[...S.favs]);WatchCore.idbSet('favs',[...S.favs]).catch(()=>{});if((S.watches||[]).some(w=>w.area==='fav'))pushSync();toast(S.favs.has(id)?'已加入常用影城，會排在最前面':'已移出常用影城')}
 const filterCount=()=>(periodOn()?1:0)+S.kinds.size+S.langs.size+S.chains.size;
 // 快捷列：只放特殊廳規格與語言，顯示這天有場次的選項
 const kindChips=list=>KINDS.filter(k=>list.some(s=>s._k.includes(k))).map(k=>`<button class="chip" data-kind="${esc(k)}" aria-pressed="${S.kinds.has(k)}">${esc(k)}</button>`).join('');
@@ -947,7 +947,7 @@ function privacySheet(){
   </ul>
   <h4>怎麼確定沒有被送出去</h4>
   <ul class="pv">
-  <li>網頁設定了「內容安全政策」：瀏覽器只允許這個網頁向自己的網站讀資料，<b>任何對外連線都會被擋下</b>。</li>
+  <li>網頁設定了「內容安全政策」：瀏覽器只允許這個網頁連到自己的網站，以及下面說明的 Reeltime 推播伺服器，<b>其他任何對外連線都會被擋下</b>。位置不會出現在任何一次連線裡。</li>
   <li>每次改版都有自動測試，模擬定位並檢查整個過程沒有任何對外連線。</li>
   <li>程式碼完全公開，任何人都能檢查：<a href="https://github.com/reeltime-tw/reeltime-tw.github.io" target="_blank" rel="noopener noreferrer">GitHub 原始碼</a>。</li>
   </ul>
@@ -955,7 +955,9 @@ function privacySheet(){
   <ul class="pv">
   <li>沒有帳號、沒有廣告、沒有追蹤或分析工具，也不用 Cookie。</li>
   <li>常用影城、縣市只存在你自己的手機瀏覽器裡。</li>
-  <li><b>追蹤場次</b>：你選的電影、日期、時段、地區只存在你自己的手機裡（瀏覽器儲存空間），<b>不會上傳</b>，也沒有帳號。通知是手機自己把最新場次表和你的條件比對後在手機上跳出來的，沒有推播伺服器；背景檢查（支援的瀏覽器）也只讀取本網站的場次檔。</li>
+  <li><b>追蹤場次</b>：你選的電影、日期、時段、地區存在你自己的手機裡（瀏覽器儲存空間），沒有帳號。打開 App 時，手機會自己把最新場次表和你的條件比對。</li>
+  <li><b>推播通知（只有你按「開啟通知」才會啟用）</b>：為了在 App 沒打開時也能通知你，手機會把<b>追蹤條件</b>（電影、日期、時段、地區；選「只看常用影城」時包含那幾間影城）和手機系統給的<b>推播位址</b>，送到 Reeltime 推播伺服器（reeltime-push.reeltime-tw.workers.dev，架在 Cloudflare）。伺服器只存這些，<b>不含位置、姓名、Email 或任何帳號</b>，每支手機只用一組隨機代號區分；90 天沒打開 App 會自動刪除。有新場次時，由 Reeltime 每天更新場次的電腦比對後，透過 Apple／Google 的推播服務送出通知。</li>
+  <li>不想用推播：刪除所有追蹤（伺服器上的資料會一起刪除），或到手機設定關閉 Reeltime 的通知。</li>
   <li>點「前往官網訂票」後會打開影城官網，之後就是影城的隱私政策。</li>
   </ul>
   <h4>不想用定位</h4>
@@ -990,6 +992,7 @@ function saveWatches(){
   const t=Date.now();S.watches.forEach(w=>w.rev=t);
   store.set('watches',S.watches);
   WC.idbSet('watches',JSON.parse(JSON.stringify(S.watches))).catch(()=>{});
+  pushSync(); // 推播已開啟時，把最新的追蹤條件同步到推播伺服器（內容沒變不會重送）
 }
 async function loadWatches(){
   let local=store.get('watches',null),idb=null;
@@ -1015,10 +1018,56 @@ async function watchCheck(){
   const now=new Date(),favs=[...S.favs];let total=0;
   for(const w of S.watches){
     const r=WC.refresh(w,{showtimes:DB.shows,cinemas:DB.cinemas},favs,now);
-    if(r.fresh.length){total+=r.fresh.length;const t=WC.noteText(w,r.fresh,DB.byC);showNote(t.title,{body:t.body,tag:'twc-'+w.id})}
+    // 推播已開啟時，新場次已由推播通知過，打開 App 只顯示紅點，不再跳一次系統通知
+    if(r.fresh.length){total+=r.fresh.length;if(!store.get('pushOn',false)){const t=WC.noteText(w,r.fresh,DB.byC);showNote(t.title,{body:t.body,tag:'twc-'+w.id})}}
   }
   if(S.watches.length)saveWatches();
   return total;
+}
+
+/* ---- 推播：App 沒打開也能收到通知 ----
+ * 只有使用者按「開啟通知」且系統允許後才啟用：向手機系統取得推播位址，連同追蹤條件送到
+ * Reeltime 推播伺服器（push-server/worker.js）。伺服器只存這兩樣，不含位置與個資；
+ * 每天更新場次的電腦（scrape/push.mjs）用同一套 watch-core.js 規則比對後送出推播。
+ * 內容沒變時不重送（伺服器免費額度每天 1000 次寫入），但至少每 7 天更新一次，避免 90 天後被自動刪除。 */
+const PUSH_URL='https://reeltime-push.reeltime-tw.workers.dev';
+const VAPID_PUBLIC='BBr-P-CckoMAV9TKbcQVEHQqvJxh0VvNIBIpg9cRxd3voY6lCjZJ1QpTCwn39lmm7il0kaDw1Mjhs82JX73FuC4';
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
+const isStandalone=()=>navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+const pushCapable=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+function pushDevice(){
+  let d=store.get('pushDevice','');
+  if(!/^[A-Za-z0-9_-]{16,64}$/.test(d)){const a=new Uint8Array(18);crypto.getRandomValues(a);d=btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');store.set('pushDevice',d)}
+  return d;
+}
+const b64u=s=>Uint8Array.from(atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+const fnv=s=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return (h>>>0).toString(36)};
+let pushBusy=null;
+function pushSync(force){
+  if(pushBusy)return pushBusy;
+  pushBusy=(async()=>{
+    try{
+      if(!pushCapable()||Notification.permission!=='granted')return false;
+      const dev=pushDevice(),list=S.watches.filter(w=>!WC.expired(w,new Date()));
+      if(!list.length){ // 沒有追蹤了：連伺服器上的資料一起刪除
+        if(store.get('pushOn',false)){await fetch(PUSH_URL+'/device/'+dev,{method:'DELETE'});store.set('pushOn',false);store.set('pushSig','')}
+        return false;
+      }
+      const reg=await navigator.serviceWorker.register('sw.js',{scope:'./'});await navigator.serviceWorker.ready;
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUBLIC)});
+      const favs=[...S.favs];
+      const watches=list.map(w=>({id:w.id,movie:w.movie,title:w.title,area:w.area,dates:w.dates||[],from:w.from||'',to:w.to||'',favs:w.area==='fav'?favs:[]}));
+      const body=JSON.stringify({subscription:sub.toJSON(),watches}),sig=fnv(body);
+      if(!force&&sig===store.get('pushSig','')&&store.get('pushOn',false)&&Date.now()-store.get('pushAt',0)<7*864e5)return true;
+      const r=await fetch(PUSH_URL+'/device/'+dev,{method:'PUT',headers:{'Content-Type':'application/json'},body});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      store.set('pushSig',sig);store.set('pushAt',Date.now());store.set('pushOn',true);
+      return true;
+    }catch(e){return false}
+  })();
+  const p=pushBusy;p.finally(()=>{if(pushBusy===p)pushBusy=null});
+  return p;
 }
 async function registerBackground(){
   try{
@@ -1066,7 +1115,7 @@ function watchHTML(){
     const ask=perm==='default';
     return `<h2>${w.done.created?'已開始追蹤':'已儲存'}</h2><p style="margin:0 0 8px">《${esc(w.title)}》${rec?esc(WC.summary(rec)):''}</p>
     <div class="notice" style="margin-bottom:12px">目前已有 <b>${w.done.n}</b> 場符合${w.done.n?`。<a href="#/movie/${encodeURIComponent(w.movie)}" style="color:var(--red)">先去看看 ›</a>`:'，有新場次出現時會提醒你。'}</div>
-    ${ask?`<p style="margin:0 0 4px;font-size:14px">要開啟系統通知嗎？有新場次時，手機會跳出通知。比對只在你的手機上進行，不經過任何伺服器。</p><div class="sheet-foot"><button class="btn" data-act="close">先不要</button><button class="btn pri" data-act="notifyon">開啟通知</button></div>`
+    ${ask?`<p style="margin:0 0 4px;font-size:14px">要開啟系統通知嗎？有新場次時，即使沒打開 App 也會收到通知（iPhone 需先用 Safari「加入主畫面」，再從主畫面打開）。開啟後，追蹤條件會送到 Reeltime 推播伺服器，不含位置與個資。</p><div class="sheet-foot"><button class="btn" data-act="close">先不要</button><button class="btn pri" data-act="notifyon">開啟通知</button></div>`
       :`<p style="margin:0 0 4px;font-size:13px;color:var(--ink2)">${perm==='granted'?'系統通知已開啟，有新場次會跳通知。':perm==='denied'?'通知目前被封鎖，只會在 App 裡用紅點提示。到手機或瀏覽器的網站設定可以重新允許。':'這個瀏覽器不支援系統通知，打開 App 時會用紅點提示。'}</p><div class="sheet-foot"><a class="btn" href="#/watch">看追蹤清單</a><button class="btn pri" data-act="close">完成</button></div>`}`;
   }
   const areas=[];
@@ -1108,7 +1157,7 @@ async function askNotify(){
   let p='default';
   try{p=await Notification.requestPermission()}catch(e){}
   toast(p==='granted'?'已開啟通知':p==='denied'?'通知被封鎖，之後可到手機或瀏覽器設定重新允許':'沒有開啟通知');
-  if(p==='granted')registerBackground();
+  if(p==='granted'){registerBackground();pushSync(true).then(ok=>{if(ok)toast('推播已開啟，沒打開 App 也會收到通知');if(S.route==='watch')render(true)})}
   if(sheetOpen&&WS&&WS.done)watchSheetRefresh();
   if(S.route==='watch')render(true);
 }
@@ -1119,7 +1168,11 @@ function pageWatch(){
     :perm==='granted'?'系統通知：<b>已開啟</b>。'
     :perm==='denied'?'系統通知：<b>被封鎖</b>。要跳通知，請到手機或瀏覽器的網站設定允許；沒有通知時，仍會用紅點提示。'
     :'系統通知：<b>尚未開啟</b>。<div class="row2"><button class="btn pri" data-act="notifyon">開啟通知</button></div>';
-  let html=`<div class="wnote"><b>怎麼通知你</b>：打開 Reeltime 時自動比對，有新場次就顯示紅點並跳通知。沒開 App 時，Android Chrome 安裝成 App 後會在背景定期檢查${bg?'（這個瀏覽器支援）':'（這個瀏覽器不支援，要打開 App 才會檢查）'}；iPhone 不支援背景檢查。網站沒有伺服器，無法即時推播。<br>${permLine}</div>`;
+  const pushLine=store.get('pushOn',false)&&perm==='granted'?'<b>推播已開啟</b>：沒打開 App 也會收到新場次通知（每天場次更新後送出）。'
+    :isIOS&&!isStandalone()?'iPhone 要在 App 沒打開時收到通知：請用 Safari 按「分享 › 加入主畫面」，之後<b>從主畫面的 Reeltime 圖示打開</b>，再按「開啟通知」（需 iOS 16.4 以上）。'
+    :!pushCapable()?'這個瀏覽器不支援推播，打開 App 時才會檢查並提示。'
+    :perm==='granted'?'推播還沒連上，下次打開 App 會自動再試。':'開啟通知後，沒打開 App 也會收到新場次通知。';
+  let html=`<div class="wnote"><b>怎麼通知你</b>：打開 Reeltime 時會自動比對，有新場次就顯示紅點。${pushLine}<br>${permLine}</div>`;
   const list=S.watches.slice().sort((a,b)=>(b.newKeys||[]).length-(a.newKeys||[]).length||(b.created||0)-(a.created||0));
   if(!list.length){
     html+=`<div class="empty"><b>還沒有追蹤的電影</b>在電影頁按「追蹤新場次」，之後有符合的新場次就通知你。還沒開賣的電影也能先追蹤，開賣時通知你。<br><a class="btn" href="#/">去選電影</a> <a class="btn" href="#/soon">看即將上映</a></div>`;

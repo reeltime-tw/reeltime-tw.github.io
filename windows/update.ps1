@@ -64,6 +64,9 @@ try {
 
   if (-not $Only) { (Get-Date).ToString('o') | Set-Content -Path $stampFile }
 
+  # 推播：比對各手機追蹤的電影有沒有新場次，有就送通知（失敗不影響這次更新）
+  try { node scrape/push.mjs } catch { Write-Host "!! 推播失敗：$($_.Exception.Message)" }
+
   # 依最新的 data/schedule.json 同步 Windows 排程（失敗不影響這次更新）
   try { & (Join-Path $PSScriptRoot 'sync-schedule.ps1') } catch { Write-Host "!! 同步排程失敗：$($_.Exception.Message)" }
 }

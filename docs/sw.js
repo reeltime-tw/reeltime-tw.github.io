@@ -1,7 +1,8 @@
-/* Reeltime 背景程式：只做兩件事，不做離線快取（避免看到舊場次）
+/* Reeltime 背景程式：不做離線快取（避免看到舊場次）
  * 1. periodicsync：背景抓本網站的 data.json，用跟頁面同一套規則比對追蹤，有新場次就跳通知
- * 2. notificationclick：點通知開啟「追蹤」頁
- * 只會讀自己網站的檔案，不連任何外部網址。 */
+ * 2. push：收到 Reeltime 推播（電腦端 scrape/push.mjs 經 Apple／Google 推播服務送來）就跳通知
+ * 3. notificationclick：點通知開啟「追蹤」頁
+ * 背景程式本身只會讀自己網站的檔案，不連任何外部網址。 */
 importScripts('watch-core.js');
 const WC=self.WatchCore;
 
@@ -30,6 +31,14 @@ async function checkWatches(){
   }
   await WC.idbSet('watches',list);
 }
+
+// 推播內容：{title, body, tag, url}（由 scrape/push.mjs 產生，文字規則同 watch-core.js 的 noteText）
+self.addEventListener('push',e=>{
+  let d={};
+  try{d=e.data?e.data.json():{}}catch(x){d={body:e.data?e.data.text():''}}
+  e.waitUntil(self.registration.showNotification(d.title||'Reeltime：追蹤的電影有新場次',{
+    body:d.body||'',icon:'icon-192.png',badge:'icon-192.png',tag:d.tag||'twc-push',renotify:true,data:{url:d.url||'./#/watch'}}));
+});
 
 self.addEventListener('notificationclick',e=>{
   e.notification.close();

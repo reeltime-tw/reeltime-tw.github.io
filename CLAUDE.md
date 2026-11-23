@@ -169,6 +169,15 @@ Claude Code 桌面版直接在使用者電腦上執行時**連得到影城網站
 完整表格在 **`research/publish-schedule.md`**。重點：只有美麗華、美麗新、樂聲有官方公告（已接成 official）；威秀、秀泰、國賓、新光、喜樂時代、in89 官網沒找到說明，只能用每日快照推測；41 間「其他影城」全部找不到。`node tools/publish-history.cjs` 可用 git 歷史重新歸納各連鎖實際延長日（快照越多越準）。
 **已知限制**：開眼電影網在凌晨尚未換日（01:27 時「今天」頁面仍是前一天、新的一天頁面是空的），所以 0 點到早上的手動更新會讓其他影城當天場次大量缺失（約 29 間），要等早上 8 點那次才補齊 → **手動更新請避開凌晨**。喜樂時代高雄店、今日店官網 API 回「查無資料」，原因未確認。
 
+## 推播（App 沒打開也能通知，2026-11-24 新增）
+
+使用者要求 iPhone 在 App 沒開時也收到推播，因此**放寬了「網頁不對外連線」的承諾**：CSP 的 connect-src 只多允許推播伺服器一個網域，且只在使用者按「開啟通知」後才連線。
+- **推播伺服器** `push-server/worker.js`（Cloudflare Workers 免費方案，網址 https://reeltime-push.reeltime-tw.workers.dev，帳號是使用者的 Cloudflare，子網域 reeltime-tw）：只用 KV（binding `WATCHES`）存「推播位址＋追蹤條件」，不做比對、不發推播。手機 `PUT/DELETE /device/{隨機裝置代號}`（只接受網站來源）；電腦用管理金鑰 `GET /all`、`DELETE /all/{代號}`。90 天沒更新自動刪除。部署：`cd push-server && npx wrangler deploy`（wrangler 已登入使用者帳號）；管理金鑰是 Worker secret `ADMIN_TOKEN`。
+- **電腦端** `scrape/push.mjs`：update.ps1 每次更新後執行。用 vm 載入 `docs/watch-core.js`（與手機同一套規則）比對，有新場次用 `web-push` 送出；失效位址（404/410）自動從伺服器刪除。金鑰在 `windows/push-secrets.json`、每支手機已通知狀態在 `windows/push-state.json`，**兩者都不上傳**（.gitignore）。`--dry` 預覽、`--test` 對所有手機送測試通知。測試：`node test/push.test.mjs`。
+- **網頁**：`pushSync()` 在開啟通知、儲存追蹤、切換常用影城（有「只看常用影城」的追蹤時）時把條件同步到伺服器；內容沒變不重送，但每 7 天至少更新一次。推播開啟時，打開 App 找到的新場次只顯示紅點、不再跳系統通知（避免重複）。`sw.js` 新增 `push` 事件。
+- **iPhone 條件**：iOS 16.4 以上，用 Safari「加入主畫面」並從主畫面打開，才能開啟推播（追蹤頁會說明）。
+- 網站 2026-11-24 搬到 GitHub 組織 `reeltime-tw`（repo `reeltime-tw.github.io`），網址 https://reeltime-tw.github.io/ 。換網址會讓手機上的常用影城、追蹤、推播都要重新設定。
+
 ## 待辦 / 可改進
 
 1. ~~確認 in89、樂聲、美麗新真實執行結果~~（已完成）
