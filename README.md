@@ -36,7 +36,7 @@
 開啟 PowerShell（不用系統管理員），貼上這行後按 Enter：
 
 ```powershell
-irm https://raw.githubusercontent.com/xinyolee827-tech/tw-cinema/main/windows/setup.ps1 -OutFile $env:TEMP\tw-setup.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\tw-setup.ps1
+irm https://raw.githubusercontent.com/reeltime-tw/reeltime-tw.github.io/main/windows/setup.ps1 -OutFile $env:TEMP\tw-setup.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\tw-setup.ps1
 ```
 
 它會：安裝 Git 與 Node.js（如果還沒有）→ 把專案下載到 `%USERPROFILE%\tw-cinema` → 建立每天 8:00 的排程（可喚醒電腦）→ 開啟電源計畫的「允許喚醒計時器」→ 立刻跑一次（第一次會請你登入 GitHub）。

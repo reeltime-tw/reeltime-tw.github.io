@@ -1,8 +1,8 @@
 ﻿# 全台電影場次：Windows 一次性設定
 # 用法：開啟 PowerShell，貼上下面這行後按 Enter（會先下載再執行）
-#   irm https://raw.githubusercontent.com/xinyolee827-tech/tw-cinema/main/windows/setup.ps1 -OutFile $env:TEMP\tw-setup.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\tw-setup.ps1
+#   irm https://raw.githubusercontent.com/reeltime-tw/reeltime-tw.github.io/main/windows/setup.ps1 -OutFile $env:TEMP\tw-setup.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\tw-setup.ps1
 $ErrorActionPreference = 'Stop'
-$RepoUrl = 'https://github.com/xinyolee827-tech/tw-cinema'
+$RepoUrl = 'https://github.com/reeltime-tw/reeltime-tw.github.io'
 $Dir     = Join-Path $HOME 'tw-cinema'
 $Task    = 'tw-cinema 每日更新場次'
 $At      = '08:00'

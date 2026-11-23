@@ -1,0 +1,10 @@
+# Reeltime 推播伺服器設定（Cloudflare Workers）
+# 部署：cd push-server && npx wrangler deploy
+# KV 的 id 在第一次建立後填入（npx wrangler kv namespace create WATCHES）
+name = "reeltime-push"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+[[kv_namespaces]]
+binding = "WATCHES"
+id = "3119f3e44d054ae4a3536bf40b21fe00"

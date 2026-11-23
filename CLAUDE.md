@@ -7,8 +7,8 @@
 
 自動抓取台灣各影城官網場次，整理成手機好用的網頁 App。
 
-- 網站：https://xinyolee827-tech.github.io/tw-cinema/
-- 專案：https://github.com/xinyolee827-tech/tw-cinema
+- 網站：https://reeltime-tw.github.io/（2026-11-24 由 xinyolee827-tech.github.io/tw-cinema 搬到 GitHub 組織 reeltime-tw，避免網址露出個人帳號名稱；舊網址已失效）
+- 專案：https://github.com/reeltime-tw/reeltime-tw.github.io
 - 功能需求（使用者原始要求）：
   - 首頁分「上映中」「即將上映」，**必須有電影海報**
   - 可依日期、地區選影城或時段
