@@ -129,13 +129,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:微風影城",
-   "chain": "其他影城",
-   "label": "微風影城",
-   "status": "ok",
-   "pages": 2
-  },
-  {
    "key": "其他影城:誠品電影院",
    "chain": "其他影城",
    "label": "誠品電影院",
@@ -143,17 +136,24 @@
    "pages": 1
   },
   {
-   "key": "其他影城:總督影城",
+   "key": "其他影城:微風影城",
    "chain": "其他影城",
-   "label": "總督影城",
-   "status": "error",
-   "pages": 1
+   "label": "微風影城",
+   "status": "ok",
+   "pages": 2
   },
   {
    "key": "其他影城:哈拉影城",
    "chain": "其他影城",
    "label": "哈拉影城",
    "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:總督影城",
+   "chain": "其他影城",
+   "label": "總督影城",
+   "status": "error",
    "pages": 1
   },
   {
@@ -192,6 +192,13 @@
    "pages": 1
   },
   {
+   "key": "其他影城:三重天台戲院",
+   "chain": "其他影城",
+   "label": "三重天台戲院",
+   "status": "ok",
+   "pages": 1
+  },
+  {
    "key": "其他影城:府中15",
    "chain": "其他影城",
    "label": "府中15",
@@ -199,18 +206,11 @@
    "pages": 3
   },
   {
-   "key": "其他影城:國家電影及視聽文化中心",
+   "key": "其他影城:景美佳佳戲院",
    "chain": "其他影城",
-   "label": "國家電影及視聽文化中心",
-   "status": "error",
-   "pages": 1
-  },
-  {
-   "key": "其他影城:三重天台戲院",
-   "chain": "其他影城",
-   "label": "三重天台戲院",
-   "status": "ok",
-   "pages": 1
+   "label": "景美佳佳戲院",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:星橋國際影城",
@@ -220,11 +220,11 @@
    "pages": 1
   },
   {
-   "key": "其他影城:景美佳佳戲院",
+   "key": "其他影城:國家電影及視聽文化中心",
    "chain": "其他影城",
-   "label": "景美佳佳戲院",
-   "status": "skipped-social",
-   "pages": 0
+   "label": "國家電影及視聽文化中心",
+   "status": "error",
+   "pages": 1
   },
   {
    "key": "其他影城:威尼斯影城",
@@ -248,13 +248,6 @@
    "pages": 0
   },
   {
-   "key": "其他影城:日日新影城",
-   "chain": "其他影城",
-   "label": "日日新影城",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:百老匯影城竹北店",
    "chain": "其他影城",
    "label": "百老匯影城竹北店",
@@ -262,9 +255,9 @@
    "pages": 3
   },
   {
-   "key": "其他影城:全球影城",
+   "key": "其他影城:日日新影城",
    "chain": "其他影城",
-   "label": "全球影城",
+   "label": "日日新影城",
    "status": "ok",
    "pages": 1
   },
@@ -273,6 +266,13 @@
    "chain": "其他影城",
    "label": "親親戲院",
    "status": "error",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:全球影城",
+   "chain": "其他影城",
+   "label": "全球影城",
+   "status": "ok",
    "pages": 1
   },
   {
