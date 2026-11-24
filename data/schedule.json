@@ -50,16 +50,6 @@
    "triggers": [
     {
      "kind": "once",
-     "at": "2026-11-24T18:00",
-     "reason": "官網公告「*** 11/24(二)18:00後開放 11/26-12/03 數位版、Dol」",
-     "source": "https://www.miramarcinemas.tw/Home/startordertime",
-     "offsets": [
-      10,
-      45
-     ]
-    },
-    {
-     "kind": "once",
      "at": "2026-12-02T18:00",
      "reason": "官網公告「購票服務 12/02(三)18:00後開放 12/04-12/10 數位版、Do」",
      "source": "https://www.miramarcinemas.tw/Home/startordertime",
