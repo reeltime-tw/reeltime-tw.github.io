@@ -66,13 +66,6 @@
  ],
  "sources": [
   {
-   "key": "樂聲",
-   "chain": "樂聲",
-   "label": "樂聲",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "美麗華",
    "chain": "美麗華",
    "label": "美麗華",
@@ -125,6 +118,13 @@
    "key": "in89",
    "chain": "in89",
    "label": "in89",
+   "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "樂聲",
+   "chain": "樂聲",
+   "label": "樂聲",
    "status": "ok",
    "pages": 1
   },
@@ -192,13 +192,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:三重天台戲院",
-   "chain": "其他影城",
-   "label": "三重天台戲院",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:府中15",
    "chain": "其他影城",
    "label": "府中15",
@@ -210,6 +203,13 @@
    "chain": "其他影城",
    "label": "國家電影及視聽文化中心",
    "status": "error",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:三重天台戲院",
+   "chain": "其他影城",
+   "label": "三重天台戲院",
+   "status": "ok",
    "pages": 1
   },
   {
