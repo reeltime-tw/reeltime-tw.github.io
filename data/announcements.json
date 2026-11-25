@@ -1,36 +1,6 @@
 {
  "items": [
   {
-   "chain": "美麗新",
-   "label": "美麗新",
-   "key": "美麗新",
-   "kind": "weekly",
-   "dow": 3,
-   "time": "18:00",
-   "text": "週五上映之電影,於當週三下午18:00後公布場次,開放當週五至下週四之場次訂購票。 週三上映之電影",
-   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
-  },
-  {
-   "chain": "美麗新",
-   "label": "美麗新",
-   "key": "美麗新",
-   "kind": "weekly",
-   "dow": 1,
-   "time": "18:00",
-   "text": "週三上映之電影,於當週一下午18:00後公布場次,開放當週三及週四之場次訂購票。 週四上映之電影,",
-   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
-  },
-  {
-   "chain": "美麗新",
-   "label": "美麗新",
-   "key": "美麗新",
-   "kind": "weekly",
-   "dow": 2,
-   "time": "18:00",
-   "text": "週四上映之電影,於當週二下午18:00後公布場次,開放當週四之場次訂購票。 如因預售或連續假期影響",
-   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
-  },
-  {
    "chain": "美麗華",
    "label": "美麗華",
    "key": "美麗華",
@@ -62,22 +32,52 @@
    "rangeFrom": "2026-12-11",
    "rangeTo": "2026-12-15",
    "source": "https://www.miramarcinemas.tw/Home/startordertime"
+  },
+  {
+   "chain": "美麗新",
+   "label": "美麗新",
+   "key": "美麗新",
+   "kind": "weekly",
+   "dow": 3,
+   "time": "18:00",
+   "text": "週五上映之電影,於當週三下午18:00後公布場次,開放當週五至下週四之場次訂購票。 週三上映之電影",
+   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
+  },
+  {
+   "chain": "美麗新",
+   "label": "美麗新",
+   "key": "美麗新",
+   "kind": "weekly",
+   "dow": 1,
+   "time": "18:00",
+   "text": "週三上映之電影,於當週一下午18:00後公布場次,開放當週三及週四之場次訂購票。 週四上映之電影,",
+   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
+  },
+  {
+   "chain": "美麗新",
+   "label": "美麗新",
+   "key": "美麗新",
+   "kind": "weekly",
+   "dow": 2,
+   "time": "18:00",
+   "text": "週四上映之電影,於當週二下午18:00後公布場次,開放當週四之場次訂購票。 如因預售或連續假期影響",
+   "source": "https://www.miranewcinemas.com/Booking/StartOrderTime"
   }
  ],
  "sources": [
-  {
-   "key": "美麗新",
-   "chain": "美麗新",
-   "label": "美麗新",
-   "status": "ok",
-   "pages": 2
-  },
   {
    "key": "美麗華",
    "chain": "美麗華",
    "label": "美麗華",
    "status": "ok",
    "pages": 5
+  },
+  {
+   "key": "美麗新",
+   "chain": "美麗新",
+   "label": "美麗新",
+   "status": "ok",
+   "pages": 2
   },
   {
    "key": "威秀",
@@ -143,6 +143,13 @@
    "pages": 2
   },
   {
+   "key": "其他影城:總督影城",
+   "chain": "其他影城",
+   "label": "總督影城",
+   "status": "error",
+   "pages": 1
+  },
+  {
    "key": "其他影城:哈拉影城",
    "chain": "其他影城",
    "label": "哈拉影城",
@@ -185,13 +192,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:總督影城",
-   "chain": "其他影城",
-   "label": "總督影城",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:三重天台戲院",
    "chain": "其他影城",
    "label": "三重天台戲院",
@@ -220,17 +220,17 @@
    "pages": 0
   },
   {
-   "key": "其他影城:威尼斯影城",
-   "chain": "其他影城",
-   "label": "威尼斯影城",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:星橋國際影城",
    "chain": "其他影城",
    "label": "星橋國際影城",
    "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:威尼斯影城",
+   "chain": "其他影城",
+   "label": "威尼斯影城",
+   "status": "error",
    "pages": 1
   },
   {
@@ -248,18 +248,18 @@
    "pages": 0
   },
   {
-   "key": "其他影城:日日新影城",
-   "chain": "其他影城",
-   "label": "日日新影城",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:百老匯影城竹北店",
    "chain": "其他影城",
    "label": "百老匯影城竹北店",
    "status": "ok",
    "pages": 3
+  },
+  {
+   "key": "其他影城:日日新影城",
+   "chain": "其他影城",
+   "label": "日日新影城",
+   "status": "ok",
+   "pages": 1
   },
   {
    "key": "其他影城:親親戲院",
@@ -297,6 +297,13 @@
    "pages": 5
   },
   {
+   "key": "其他影城:員林影城",
+   "chain": "其他影城",
+   "label": "員林影城",
+   "status": "skipped-social",
+   "pages": 0
+  },
+  {
    "key": "其他影城:環球中華影城",
    "chain": "其他影城",
    "label": "環球中華影城",
@@ -330,13 +337,6 @@
    "label": "南台電影城",
    "status": "ok",
    "pages": 1
-  },
-  {
-   "key": "其他影城:員林影城",
-   "chain": "其他影城",
-   "label": "員林影城",
-   "status": "skipped-social",
-   "pages": 0
   },
   {
    "key": "其他影城:全美戲院",
