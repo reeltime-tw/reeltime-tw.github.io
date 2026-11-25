@@ -143,17 +143,17 @@
    "pages": 1
   },
   {
-   "key": "其他影城:哈拉影城",
-   "chain": "其他影城",
-   "label": "哈拉影城",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:總督影城",
    "chain": "其他影城",
    "label": "總督影城",
    "status": "error",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:哈拉影城",
+   "chain": "其他影城",
+   "label": "哈拉影城",
+   "status": "ok",
    "pages": 1
   },
   {
@@ -171,6 +171,13 @@
    "pages": 1
   },
   {
+   "key": "其他影城:光點台北電影院",
+   "chain": "其他影城",
+   "label": "光點台北電影院",
+   "status": "ok",
+   "pages": 1
+  },
+  {
    "key": "其他影城:百老匯影城公館店",
    "chain": "其他影城",
    "label": "百老匯影城公館店",
@@ -178,9 +185,9 @@
    "pages": 3
   },
   {
-   "key": "其他影城:光點台北電影院",
+   "key": "其他影城:新莊鴻金寶麻吉影城",
    "chain": "其他影城",
-   "label": "光點台北電影院",
+   "label": "新莊鴻金寶麻吉影城",
    "status": "ok",
    "pages": 1
   },
@@ -192,25 +199,11 @@
    "pages": 1
   },
   {
-   "key": "其他影城:新莊鴻金寶麻吉影城",
-   "chain": "其他影城",
-   "label": "新莊鴻金寶麻吉影城",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:府中15",
    "chain": "其他影城",
    "label": "府中15",
    "status": "ok",
    "pages": 3
-  },
-  {
-   "key": "其他影城:國家電影及視聽文化中心",
-   "chain": "其他影城",
-   "label": "國家電影及視聽文化中心",
-   "status": "error",
-   "pages": 1
   },
   {
    "key": "其他影城:景美佳佳戲院",
@@ -227,11 +220,11 @@
    "pages": 1
   },
   {
-   "key": "其他影城:桃園光影文化館",
+   "key": "其他影城:國家電影及視聽文化中心",
    "chain": "其他影城",
-   "label": "桃園光影文化館",
-   "status": "skipped-social",
-   "pages": 0
+   "label": "國家電影及視聽文化中心",
+   "status": "error",
+   "pages": 1
   },
   {
    "key": "其他影城:威尼斯影城",
@@ -241,11 +234,11 @@
    "pages": 1
   },
   {
-   "key": "其他影城:百老匯影城竹北店",
+   "key": "其他影城:桃園光影文化館",
    "chain": "其他影城",
-   "label": "百老匯影城竹北店",
-   "status": "ok",
-   "pages": 3
+   "label": "桃園光影文化館",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:中壢光影電影館",
@@ -255,17 +248,24 @@
    "pages": 0
   },
   {
-   "key": "其他影城:親親戲院",
+   "key": "其他影城:百老匯影城竹北店",
    "chain": "其他影城",
-   "label": "親親戲院",
-   "status": "error",
-   "pages": 1
+   "label": "百老匯影城竹北店",
+   "status": "ok",
+   "pages": 3
   },
   {
    "key": "其他影城:日日新影城",
    "chain": "其他影城",
    "label": "日日新影城",
    "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:親親戲院",
+   "chain": "其他影城",
+   "label": "親親戲院",
+   "status": "error",
    "pages": 1
   },
   {
@@ -346,13 +346,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:麻豆戲院",
-   "chain": "其他影城",
-   "label": "麻豆戲院",
-   "status": "skipped-social",
-   "pages": 0
-  },
-  {
    "key": "其他影城:高雄環球影城",
    "chain": "其他影城",
    "label": "高雄環球影城",
@@ -363,6 +356,13 @@
    "key": "其他影城:台鋁影城",
    "chain": "其他影城",
    "label": "台鋁影城",
+   "status": "skipped-social",
+   "pages": 0
+  },
+  {
+   "key": "其他影城:麻豆戲院",
+   "chain": "其他影城",
+   "label": "麻豆戲院",
    "status": "skipped-social",
    "pages": 0
   },
