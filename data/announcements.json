@@ -143,17 +143,17 @@
    "pages": 1
   },
   {
-   "key": "其他影城:總督影城",
-   "chain": "其他影城",
-   "label": "總督影城",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:哈拉影城",
    "chain": "其他影城",
    "label": "哈拉影城",
    "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:總督影城",
+   "chain": "其他影城",
+   "label": "總督影城",
+   "status": "error",
    "pages": 1
   },
   {
@@ -185,16 +185,16 @@
    "pages": 1
   },
   {
-   "key": "其他影城:新莊鴻金寶麻吉影城",
+   "key": "其他影城:三重天台戲院",
    "chain": "其他影城",
-   "label": "新莊鴻金寶麻吉影城",
+   "label": "三重天台戲院",
    "status": "ok",
    "pages": 1
   },
   {
-   "key": "其他影城:三重天台戲院",
+   "key": "其他影城:新莊鴻金寶麻吉影城",
    "chain": "其他影城",
-   "label": "三重天台戲院",
+   "label": "新莊鴻金寶麻吉影城",
    "status": "ok",
    "pages": 1
   },
@@ -227,13 +227,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:威尼斯影城",
-   "chain": "其他影城",
-   "label": "威尼斯影城",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:桃園光影文化館",
    "chain": "其他影城",
    "label": "桃園光影文化館",
@@ -241,11 +234,11 @@
    "pages": 0
   },
   {
-   "key": "其他影城:中壢光影電影館",
+   "key": "其他影城:威尼斯影城",
    "chain": "其他影城",
-   "label": "中壢光影電影館",
-   "status": "skipped-social",
-   "pages": 0
+   "label": "威尼斯影城",
+   "status": "error",
+   "pages": 1
   },
   {
    "key": "其他影城:百老匯影城竹北店",
@@ -255,17 +248,24 @@
    "pages": 3
   },
   {
-   "key": "其他影城:日日新影城",
+   "key": "其他影城:中壢光影電影館",
    "chain": "其他影城",
-   "label": "日日新影城",
-   "status": "ok",
-   "pages": 1
+   "label": "中壢光影電影館",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:親親戲院",
    "chain": "其他影城",
    "label": "親親戲院",
    "status": "error",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:日日新影城",
+   "chain": "其他影城",
+   "label": "日日新影城",
+   "status": "ok",
    "pages": 1
   },
   {
@@ -297,13 +297,6 @@
    "pages": 5
   },
   {
-   "key": "其他影城:環球中華影城",
-   "chain": "其他影城",
-   "label": "環球中華影城",
-   "status": "ok",
-   "pages": 2
-  },
-  {
    "key": "其他影城:員林影城",
    "chain": "其他影城",
    "label": "員林影城",
@@ -311,16 +304,23 @@
    "pages": 0
   },
   {
-   "key": "其他影城:埔里山明影城",
+   "key": "其他影城:環球中華影城",
    "chain": "其他影城",
-   "label": "埔里山明影城",
+   "label": "環球中華影城",
    "status": "ok",
-   "pages": 1
+   "pages": 2
   },
   {
    "key": "其他影城:南投戲院",
    "chain": "其他影城",
    "label": "南投戲院",
+   "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:埔里山明影城",
+   "chain": "其他影城",
+   "label": "埔里山明影城",
    "status": "ok",
    "pages": 1
   },
@@ -339,13 +339,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:麻豆戲院",
-   "chain": "其他影城",
-   "label": "麻豆戲院",
-   "status": "skipped-social",
-   "pages": 0
-  },
-  {
    "key": "其他影城:全美戲院",
    "chain": "其他影城",
    "label": "全美戲院",
@@ -353,9 +346,9 @@
    "pages": 1
   },
   {
-   "key": "其他影城:台鋁影城",
+   "key": "其他影城:麻豆戲院",
    "chain": "其他影城",
-   "label": "台鋁影城",
+   "label": "麻豆戲院",
    "status": "skipped-social",
    "pages": 0
   },
@@ -365,6 +358,13 @@
    "label": "高雄環球影城",
    "status": "ok",
    "pages": 3
+  },
+  {
+   "key": "其他影城:台鋁影城",
+   "chain": "其他影城",
+   "label": "台鋁影城",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:高雄市電影館",
