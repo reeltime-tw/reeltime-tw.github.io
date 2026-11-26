@@ -66,13 +66,6 @@
  ],
  "sources": [
   {
-   "key": "樂聲",
-   "chain": "樂聲",
-   "label": "樂聲",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "美麗華",
    "chain": "美麗華",
    "label": "美麗華",
@@ -125,6 +118,13 @@
    "key": "in89",
    "chain": "in89",
    "label": "in89",
+   "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "樂聲",
+   "chain": "樂聲",
+   "label": "樂聲",
    "status": "ok",
    "pages": 1
   },
@@ -374,16 +374,16 @@
    "pages": 5
   },
   {
-   "key": "其他影城:中影屏東影城",
+   "key": "其他影城:內惟藝術中心",
    "chain": "其他影城",
-   "label": "中影屏東影城",
+   "label": "內惟藝術中心",
    "status": "ok",
    "pages": 4
   },
   {
-   "key": "其他影城:內惟藝術中心",
+   "key": "其他影城:中影屏東影城",
    "chain": "其他影城",
-   "label": "內惟藝術中心",
+   "label": "中影屏東影城",
    "status": "ok",
    "pages": 4
   },
