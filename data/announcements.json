@@ -5,19 +5,8 @@
    "label": "美麗華",
    "key": "美麗華",
    "kind": "once",
-   "at": "2026-11-24T18:00",
-   "text": "*** 11/24(二)18:00後開放 11/26-12/03 數位版、Dolby Cinem",
-   "rangeFrom": "2026-11-26",
-   "rangeTo": "2026-12-03",
-   "source": "https://www.miramarcinemas.tw/Home/startordertime"
-  },
-  {
-   "chain": "美麗華",
-   "label": "美麗華",
-   "key": "美麗華",
-   "kind": "once",
    "at": "2026-12-02T18:00",
-   "text": "購票服務 12/02(三)18:00後開放 12/04-12/10 數位版、Dolby Cinem",
+   "text": "*** 12/02(三)18:00後開放 12/04-12/10 數位版、Dolby Cinem",
    "rangeFrom": "2026-12-04",
    "rangeTo": "2026-12-10",
    "source": "https://www.miramarcinemas.tw/Home/startordertime"
@@ -31,6 +20,17 @@
    "text": "購票服務 12/09(三)18:00後開放 12/11-12/15 數位版、Dolby Cinem",
    "rangeFrom": "2026-12-11",
    "rangeTo": "2026-12-15",
+   "source": "https://www.miramarcinemas.tw/Home/startordertime"
+  },
+  {
+   "chain": "美麗華",
+   "label": "美麗華",
+   "key": "美麗華",
+   "kind": "once",
+   "at": "2026-12-14T18:00",
+   "text": "購票服務 12/14(一)18:00後開放 12/16-12/22 數位版、Dolby Cinem",
+   "rangeFrom": "2026-12-16",
+   "rangeTo": "2026-12-22",
    "source": "https://www.miramarcinemas.tw/Home/startordertime"
   },
   {
@@ -129,18 +129,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:微風影城",
-   "chain": "其他影城",
-   "label": "微風影城",
-   "status": "ok",
-   "pages": 2
-  },
-  {
    "key": "其他影城:誠品電影院",
    "chain": "其他影城",
    "label": "誠品電影院",
    "status": "error",
    "pages": 1
+  },
+  {
+   "key": "其他影城:微風影城",
+   "chain": "其他影城",
+   "label": "微風影城",
+   "status": "ok",
+   "pages": 2
   },
   {
    "key": "其他影城:總督影城",
@@ -346,18 +346,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:高雄環球影城",
-   "chain": "其他影城",
-   "label": "高雄環球影城",
-   "status": "ok",
-   "pages": 3
-  },
-  {
    "key": "其他影城:麻豆戲院",
    "chain": "其他影城",
    "label": "麻豆戲院",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:高雄環球影城",
+   "chain": "其他影城",
+   "label": "高雄環球影城",
+   "status": "ok",
+   "pages": 3
   },
   {
    "key": "其他影城:台鋁影城",

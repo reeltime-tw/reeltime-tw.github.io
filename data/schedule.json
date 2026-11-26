@@ -51,7 +51,7 @@
     {
      "kind": "once",
      "at": "2026-12-02T18:00",
-     "reason": "官網公告「購票服務 12/02(三)18:00後開放 12/04-12/10 數位版、Do」",
+     "reason": "官網公告「*** 12/02(三)18:00後開放 12/04-12/10 數位版、Dol」",
      "source": "https://www.miramarcinemas.tw/Home/startordertime",
      "offsets": [
       10,
@@ -62,6 +62,16 @@
      "kind": "once",
      "at": "2026-12-09T18:00",
      "reason": "官網公告「購票服務 12/09(三)18:00後開放 12/11-12/15 數位版、Do」",
+     "source": "https://www.miramarcinemas.tw/Home/startordertime",
+     "offsets": [
+      10,
+      45
+     ]
+    },
+    {
+     "kind": "once",
+     "at": "2026-12-14T18:00",
+     "reason": "官網公告「購票服務 12/14(一)18:00後開放 12/16-12/22 數位版、Do」",
      "source": "https://www.miramarcinemas.tw/Home/startordertime",
      "offsets": [
       10,
