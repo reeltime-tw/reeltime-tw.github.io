@@ -129,18 +129,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:誠品電影院",
-   "chain": "其他影城",
-   "label": "誠品電影院",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:微風影城",
    "chain": "其他影城",
    "label": "微風影城",
    "status": "ok",
    "pages": 2
+  },
+  {
+   "key": "其他影城:誠品電影院",
+   "chain": "其他影城",
+   "label": "誠品電影院",
+   "status": "error",
+   "pages": 1
   },
   {
    "key": "其他影城:總督影城",
@@ -192,20 +192,6 @@
    "pages": 1
   },
   {
-   "key": "其他影城:府中15",
-   "chain": "其他影城",
-   "label": "府中15",
-   "status": "ok",
-   "pages": 3
-  },
-  {
-   "key": "其他影城:國家電影及視聽文化中心",
-   "chain": "其他影城",
-   "label": "國家電影及視聽文化中心",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:三重天台戲院",
    "chain": "其他影城",
    "label": "三重天台戲院",
@@ -213,11 +199,25 @@
    "pages": 1
   },
   {
+   "key": "其他影城:府中15",
+   "chain": "其他影城",
+   "label": "府中15",
+   "status": "ok",
+   "pages": 3
+  },
+  {
    "key": "其他影城:景美佳佳戲院",
    "chain": "其他影城",
    "label": "景美佳佳戲院",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:國家電影及視聽文化中心",
+   "chain": "其他影城",
+   "label": "國家電影及視聽文化中心",
+   "status": "error",
+   "pages": 1
   },
   {
    "key": "其他影城:星橋國際影城",
@@ -339,18 +339,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:全美戲院",
-   "chain": "其他影城",
-   "label": "全美戲院",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:麻豆戲院",
    "chain": "其他影城",
    "label": "麻豆戲院",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:全美戲院",
+   "chain": "其他影城",
+   "label": "全美戲院",
+   "status": "ok",
+   "pages": 1
   },
   {
    "key": "其他影城:高雄環球影城",
