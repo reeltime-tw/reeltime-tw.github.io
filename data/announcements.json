@@ -66,13 +66,6 @@
  ],
  "sources": [
   {
-   "key": "樂聲",
-   "chain": "樂聲",
-   "label": "樂聲",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "美麗華",
    "chain": "美麗華",
    "label": "美麗華",
@@ -125,6 +118,13 @@
    "key": "in89",
    "chain": "in89",
    "label": "in89",
+   "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "樂聲",
+   "chain": "樂聲",
+   "label": "樂聲",
    "status": "ok",
    "pages": 1
   },
@@ -206,18 +206,18 @@
    "pages": 3
   },
   {
-   "key": "其他影城:景美佳佳戲院",
-   "chain": "其他影城",
-   "label": "景美佳佳戲院",
-   "status": "skipped-social",
-   "pages": 0
-  },
-  {
    "key": "其他影城:國家電影及視聽文化中心",
    "chain": "其他影城",
    "label": "國家電影及視聽文化中心",
    "status": "error",
    "pages": 1
+  },
+  {
+   "key": "其他影城:景美佳佳戲院",
+   "chain": "其他影城",
+   "label": "景美佳佳戲院",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:星橋國際影城",
@@ -325,17 +325,17 @@
    "pages": 1
   },
   {
-   "key": "其他影城:嘉年華戲院",
-   "chain": "其他影城",
-   "label": "嘉年華戲院",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:南台電影城",
    "chain": "其他影城",
    "label": "南台電影城",
    "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:嘉年華戲院",
+   "chain": "其他影城",
+   "label": "嘉年華戲院",
+   "status": "error",
    "pages": 1
   },
   {
