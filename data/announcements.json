@@ -157,18 +157,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:光點華山電影館",
-   "chain": "其他影城",
-   "label": "光點華山電影館",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:真善美戲院",
    "chain": "其他影城",
    "label": "真善美戲院",
    "status": "ok",
    "pages": 4
+  },
+  {
+   "key": "其他影城:光點華山電影館",
+   "chain": "其他影城",
+   "label": "光點華山電影館",
+   "status": "ok",
+   "pages": 1
   },
   {
    "key": "其他影城:百老匯影城公館店",
@@ -206,18 +206,18 @@
    "pages": 3
   },
   {
-   "key": "其他影城:景美佳佳戲院",
-   "chain": "其他影城",
-   "label": "景美佳佳戲院",
-   "status": "skipped-social",
-   "pages": 0
-  },
-  {
    "key": "其他影城:國家電影及視聽文化中心",
    "chain": "其他影城",
    "label": "國家電影及視聽文化中心",
    "status": "error",
    "pages": 1
+  },
+  {
+   "key": "其他影城:景美佳佳戲院",
+   "chain": "其他影城",
+   "label": "景美佳佳戲院",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:星橋國際影城",
@@ -283,18 +283,18 @@
    "pages": 2
   },
   {
-   "key": "其他影城:中山73影視藝文空間",
-   "chain": "其他影城",
-   "label": "中山73影視藝文空間",
-   "status": "skipped-social",
-   "pages": 0
-  },
-  {
    "key": "其他影城:王牌映画影城",
    "chain": "其他影城",
    "label": "王牌映画影城",
    "status": "ok",
    "pages": 5
+  },
+  {
+   "key": "其他影城:中山73影視藝文空間",
+   "chain": "其他影城",
+   "label": "中山73影視藝文空間",
+   "status": "skipped-social",
+   "pages": 0
   },
   {
    "key": "其他影城:員林影城",
@@ -346,18 +346,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:高雄環球影城",
-   "chain": "其他影城",
-   "label": "高雄環球影城",
-   "status": "ok",
-   "pages": 3
-  },
-  {
    "key": "其他影城:麻豆戲院",
    "chain": "其他影城",
    "label": "麻豆戲院",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:高雄環球影城",
+   "chain": "其他影城",
+   "label": "高雄環球影城",
+   "status": "ok",
+   "pages": 3
   },
   {
    "key": "其他影城:台鋁影城",
