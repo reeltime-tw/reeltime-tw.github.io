@@ -283,18 +283,18 @@
    "pages": 2
   },
   {
-   "key": "其他影城:王牌映画影城",
-   "chain": "其他影城",
-   "label": "王牌映画影城",
-   "status": "ok",
-   "pages": 5
-  },
-  {
    "key": "其他影城:中山73影視藝文空間",
    "chain": "其他影城",
    "label": "中山73影視藝文空間",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:王牌映画影城",
+   "chain": "其他影城",
+   "label": "王牌映画影城",
+   "status": "ok",
+   "pages": 5
   },
   {
    "key": "其他影城:員林影城",
@@ -339,18 +339,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:全美戲院",
-   "chain": "其他影城",
-   "label": "全美戲院",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:麻豆戲院",
    "chain": "其他影城",
    "label": "麻豆戲院",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:全美戲院",
+   "chain": "其他影城",
+   "label": "全美戲院",
+   "status": "ok",
+   "pages": 1
   },
   {
    "key": "其他影城:高雄環球影城",
