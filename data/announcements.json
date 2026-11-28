@@ -213,18 +213,18 @@
    "pages": 1
   },
   {
-   "key": "其他影城:星橋國際影城",
-   "chain": "其他影城",
-   "label": "星橋國際影城",
-   "status": "ok",
-   "pages": 1
-  },
-  {
    "key": "其他影城:景美佳佳戲院",
    "chain": "其他影城",
    "label": "景美佳佳戲院",
    "status": "skipped-social",
    "pages": 0
+  },
+  {
+   "key": "其他影城:星橋國際影城",
+   "chain": "其他影城",
+   "label": "星橋國際影城",
+   "status": "ok",
+   "pages": 1
   },
   {
    "key": "其他影城:威尼斯影城",
@@ -262,17 +262,17 @@
    "pages": 1
   },
   {
-   "key": "其他影城:親親戲院",
-   "chain": "其他影城",
-   "label": "親親戲院",
-   "status": "error",
-   "pages": 1
-  },
-  {
    "key": "其他影城:全球影城",
    "chain": "其他影城",
    "label": "全球影城",
    "status": "ok",
+   "pages": 1
+  },
+  {
+   "key": "其他影城:親親戲院",
+   "chain": "其他影城",
+   "label": "親親戲院",
+   "status": "error",
    "pages": 1
   },
   {
@@ -290,13 +290,6 @@
    "pages": 0
   },
   {
-   "key": "其他影城:王牌映画影城",
-   "chain": "其他影城",
-   "label": "王牌映画影城",
-   "status": "ok",
-   "pages": 5
-  },
-  {
    "key": "其他影城:員林影城",
    "chain": "其他影城",
    "label": "員林影城",
@@ -309,6 +302,13 @@
    "label": "環球中華影城",
    "status": "ok",
    "pages": 2
+  },
+  {
+   "key": "其他影城:王牌映画影城",
+   "chain": "其他影城",
+   "label": "王牌映画影城",
+   "status": "ok",
+   "pages": 5
   },
   {
    "key": "其他影城:南投戲院",
